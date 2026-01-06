@@ -12,7 +12,7 @@ class WeatherService
 
     public function __construct()
     {
-        // Puxa a chave que você colocou no .env
+        // Puxa a chave que você colocou no .env  
         $this->apiKey = config('services.openweather.key');
     }
 
