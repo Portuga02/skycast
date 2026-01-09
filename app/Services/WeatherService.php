@@ -20,7 +20,7 @@ class WeatherService
     {
         // Cache de 15 minutosss (900 segundos) para sser performático
         return Cache::remember("weather_city_{$city}", 900, function () use ($city) {
-            $response = Http::get($this->baseUrl, [
+           $response = Http::withoutVerifying()->get($this->baseUrl, [
                 'q' => $city,
                 'appid' => $this->apiKey,
                 'units' => 'metric',

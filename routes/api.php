@@ -3,6 +3,7 @@
 use App\Services\WeatherService;
 use Illuminate\Support\Facades\Route;
 
+// Agora a rota está protegida no grupo de API
 Route::get('/clima/{city}', function (string $city, WeatherService $service) {
     $dados = $service->getWeather($city);
     
@@ -10,5 +11,5 @@ Route::get('/clima/{city}', function (string $city, WeatherService $service) {
         return response()->json(['erro' => 'Cidade não encontrada'], 404);
     }
 
-    return $dados;
+    return response()->json($dados);
 });
