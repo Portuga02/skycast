@@ -1,59 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🌤️ SkyCast PRO
+
+![Status do Projeto](https://img.shields.io/badge/status-ativo-success.svg)
+![Laravel](https://img.shields.io/badge/laravel-%23FF2D20.svg?style=flat&logo=laravel&logoColor=white)
+![Vue.js](https://img.shields.io/badge/vuejs-%2335495e.svg?style=flat&logo=vuedotjs&logoColor=%234FC08D)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)
+![Licença](https://img.shields.io/badge/license-MIT-blue.svg)
+
+> **SkyCast PRO** é uma aplicação de previsão do tempo de alta precisão, projetada para resolver desafios complexos de desambiguação geográfica. Construída com um backend robusto em **Laravel** e um frontend reativo em **Vue.js 3**, ela implementa padrões avançados de manipulação de eventos e arquitetura para garantir a precisão dos dados em localidades limítrofes.
+
+---
+
+## 📸 Preview do Projeto
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="./screenshot.png" alt="Painel SkyCast PRO" width="100%">
 </p>
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Destaques de Engenharia e Decisões Arquiteturais
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Este projeto demonstra soluções para problemas críticos de engenharia de software encontrados em aplicações baseadas em geolocalização.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 1. Estratégia de Desambiguação Geográfica
+**O Problema:** Buscar por uma cidade como "Prata" frequentemente retorna falsos positivos (ex: "Nova Prata" no RS) porque APIs padrão priorizam população ou relevância em vez da correspondência exata.
+**A Solução:**
+- Implementação de uma **Construção de Consulta Composta** no Frontend.
+- O sistema constrói um payload estrito: `Nome da Cidade - Código do Estado, Código do País` (ex: `Prata - PB, BR`).
+- Isso força a API de Geocoding a filtrar estritamente por região, garantindo 100% de precisão mesmo para cidades pequenas que compartilham nomes com grandes centros.
 
-## Learning Laravel
+### 2. Tratamento de "Race Conditions" no Frontend
+**O Problema:** Em componentes de Autocomplete reativos, o evento `blur` (perda de foco do input) geralmente dispara antes do evento `click` na lista suspensa. Isso faz com que a lista feche antes que a seleção do usuário seja registrada.
+**A Solução:**
+- Utilização do modificador de evento `@mousedown.prevent` em vez de `@click`.
+- Isso intercepta a prioridade do loop de eventos do navegador, garantindo que a lógica de seleção seja executada e o estado seja atualizado **antes** que o elemento de input perca o foco.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 3. Lógica de Exibição vs. Lógica Técnica (View Override)
+**O Problema:** APIs de clima muitas vezes retornam o nome da estação meteorológica mais próxima (ex: "Ouro Velho") em vez da cidade pequena solicitada ("Prata"), confundindo o usuário.
+**A Solução:**
+- Implementação do padrão **View Override** (Sobrescrita de Visualização).
+- A aplicação armazena o nome selecionado pelo usuário em uma variável de estado separada (`display_name`) para persistir o contexto da UI, enquanto utiliza as coordenadas técnicas em segundo plano para a recuperação dos dados.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 4. Roteamento Robusto e Codificação de URL
+**O Problema:** Passar strings complexas contendo hifens, vírgulas e espaços (ex: `Recife - PE, BR`) quebra os parâmetros de rota RESTful padrão.
+**A Solução:**
+- Configuração de Rotas Laravel com **Restrições Regex** (`->where('city', '.*')`) para aceitar caracteres arbitrários.
+- Implementação de pipelines de sanitização estrita com `encodeURIComponent` (Frontend) e `urldecode` (Backend).
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🛠️ Stack Tecnológica
 
-### Premium Partners
+### Backend (API)
+- **Framework:** Laravel 10
+- **Arquitetura:** MVC + Service Pattern
+- **Cliente HTTP:** Guzzle (via Laravel Http Facade)
+- **Cache:** File Driver (TTL de 15 minutos para respostas da API)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Frontend (Cliente)
+- **Framework:** Vue.js 3 (Composition API)
+- **Estilização:** Tailwind CSS (Utility-first)
+- **Gerenciamento de Estado:** Reactive Refs & LocalStorage (Persistência de Histórico)
+- **Cliente HTTP:** Axios
 
-## Contributing
+### Serviços Externos
+- **Dados Climáticos:** OpenWeatherMap (Current Weather Data 2.5)
+- **Geocoding:** OpenWeatherMap (Geocoding API 1.0)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## ⚡ Instalação e Configuração
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Pré-requisitos
+- PHP 8.1+
+- Composer
+- Node.js & NPM
 
-## Security Vulnerabilities
+### 1. Clonar o repositório
+```bash
+git clone [https://github.com/seu-usuario/skycast-pro.git](https://github.com/seu-usuario/skycast-pro.git)
+cd skycast-pro
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+2. Configuração do BackendBash# Instalar dependências PHP
+composer install
 
-## License
+# Configuração de ambiente
+cp .env.example .env
+php artisan key:generate
+3. Configuração da API KeyAdicione sua chave da OpenWeather API ao arquivo .env:Fragmento do códigoOPENWEATHER_API_KEY=sua_chave_aqui
+4. Configuração do FrontendBash# Instalar dependências Node
+npm install
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# Compilar assets (Hot Reload)
+npm run dev
+5. Executar o ServidorEm um novo terminal:Bashphp artisan serve
+Acesse a aplicação em: http://localhost:8000🔌 Endpoints da APIMétodoEndpointDescriçãoGET/api/cidades/busca/{query}Retorna lista de cidades para Autocomplete (Geocoding)GET/api/clima/{city}Retorna dados climáticos detalhados para uma string de localização
+
+Gerenciamento de Cache
+Para garantir que as alterações de roteamento sejam aplicadas corretamente durante o desenvolvimento:
+
+Bash
+
+php artisan route:clear
+php artisan cache:clear
+php artisan config:clear
+👤 Autor
+[Sávio Gomes da Silva ] Engenheiro de Software Fullstack | Especialista em Laravel & Vue.js
+
+Projeto desenvolvido para fins de demonstração de arquitetura de software.

@@ -1,15 +1,11 @@
 <?php
-
-use App\Services\WeatherService;
+use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
-// Agora a rota está protegida no grupo de API
-Route::get('/clima/{city}', function (string $city, WeatherService $service) {
-    $dados = $service->getWeather($city);
-    
-    if (!$dados) {
-        return response()->json(['erro' => 'Cidade não encontrada'], 404);
-    }
+// Rota para o Clima Final
+Route::get('/clima/{city}', [WeatherController::class, 'show'])
+     ->where('city', '.*');
 
-    return response()->json($dados);
-});
+// Rota para as Sugestões (Autocomplete)
+Route::get('/cidades/busca/{query}', [WeatherController::class, 'search'])
+     ->where('query', '.*');
