@@ -15,50 +15,50 @@ class WeatherService
 
     public function __construct()
     {
-       $this->apiKey = config('services.openweather.key');
+        $this->apiKey = config('services.openweather.key');
     }
 
     /**
      * Busca Clima Atual + 5 dias usando sua lógica de desambiguação por UF
      */
-   public function getForecastData(string $city)
-{
-    $cityQuery = str_replace('-', ',', $city);
-    $cityQuery = trim(preg_replace('/\s+/', ' ', $cityQuery));
+    public function getForecastData(string $city)
+    {
+        $cityQuery = str_replace('-', ',', $city);
+        $cityQuery = trim(preg_replace('/\s+/', ' ', $cityQuery));
 
-    // Usamos o seu Cache v3
-    return \Illuminate\Support\Facades\Cache::remember("forecast_city_v1_" . md5($cityQuery), 900, function () use ($cityQuery) {
+        // Usamos o seu Cache v3
+        return \Illuminate\Support\Facades\Cache::remember("forecast_city_v1_" . md5($cityQuery), 900, function () use ($cityQuery) {
 
-        // 1. Sua Geocoding API (que já funciona)
-        $geoResponse = \Illuminate\Support\Facades\Http::get($this->geoUrl, [
-            'q' => $cityQuery,
-            'limit' => 1,
-            'appid' => $this->apiKey
-        ]);
+            // 1. Sua Geocoding API (que já funciona)
+            $geoResponse = \Illuminate\Support\Facades\Http::get($this->geoUrl, [
+                'q' => $cityQuery,
+                'limit' => 1,
+                'appid' => $this->apiKey
+            ]);
 
-        if ($geoResponse->failed() || !isset($geoResponse->json()[0])) return null;
+            if ($geoResponse->failed() || !isset($geoResponse->json()[0])) return null;
 
-        $geoData = $geoResponse->json()[0];
-        
-        // 2. Chamada para FORECAST (para os 5 dias)
-        $response = Http::withoutVerifying()->get('https://api.openweathermap.org/data/2.5/forecast', [
-            'lat' => $geoData['lat'],
-            'lon' => $geoData['lon'],
-            'appid' => $this->apiKey,
-            'units' => 'metric',
-            'lang' => 'pt_br'
-        ]);
+            $geoData = $geoResponse->json()[0];
 
-        if ($response->failed()) return null;
+            // 2. Chamada para FORECAST (para os 5 dias)
+            $response = Http::withoutVerifying()->get('https://api.openweathermap.org/data/2.5/forecast', [
+                'lat' => $geoData['lat'],
+                'lon' => $geoData['lon'],
+                'appid' => $this->apiKey,
+                'units' => 'metric',
+                'lang' => 'pt_br'
+            ]);
 
-        $dados = $response->json();
-        
-        // Injetamos a UF usando sua função formatState
-        $dados['city']['state_uf'] = $this->formatState($geoData['state'] ?? null);
+            if ($response->failed()) return null;
 
-        return $dados;
-    });
-}
+            $dados = $response->json();
+
+            // Injetamos a UF usando sua função formatState
+            $dados['city']['state_uf'] = $this->formatState($geoData['state'] ?? null);
+
+            return $dados;
+        });
+    }
 
     /**
      * Sua lógica de formatação de estados (Mantida exatamente como você fez)
@@ -68,15 +68,33 @@ class WeatherService
         if (!$state) return null;
 
         $states = [
-            'Paraiba' => 'PB', 'Pernambuco' => 'PE', 'Ceara' => 'CE',
-            'Rio Grande do Norte' => 'RN', 'Bahia' => 'BA', 'Alagoas' => 'AL',
-            'Sergipe' => 'SE', 'Maranhao' => 'MA', 'Piaui' => 'PI',
-            'Sao Paulo' => 'SP', 'Rio de Janeiro' => 'RJ', 'Minas Gerais' => 'MG',
-            'Espirito Santo' => 'ES', 'Parana' => 'PR', 'Rio Grande do Sul' => 'RS',
-            'Santa Catarina' => 'SC', 'Goias' => 'GO', 'Mato Grosso' => 'MT',
-            'Mato Grosso do Sul' => 'MS', 'Distrito Federal' => 'DF', 'Acre' => 'AC',
-            'Amapa' => 'AP', 'Amazonas' => 'AM', 'Para' => 'PA',
-            'Rondonia' => 'RO', 'Roraima' => 'RR', 'Tocantins' => 'TO'
+            'Paraiba' => 'PB',
+            'Pernambuco' => 'PE',
+            'Ceara' => 'CE',
+            'Rio Grande do Norte' => 'RN',
+            'Bahia' => 'BA',
+            'Alagoas' => 'AL',
+            'Sergipe' => 'SE',
+            'Maranhao' => 'MA',
+            'Piaui' => 'PI',
+            'Sao Paulo' => 'SP',
+            'Rio de Janeiro' => 'RJ',
+            'Minas Gerais' => 'MG',
+            'Espirito Santo' => 'ES',
+            'Parana' => 'PR',
+            'Rio Grande do Sul' => 'RS',
+            'Santa Catarina' => 'SC',
+            'Goias' => 'GO',
+            'Mato Grosso' => 'MT',
+            'Mato Grosso do Sul' => 'MS',
+            'Distrito Federal' => 'DF',
+            'Acre' => 'AC',
+            'Amapa' => 'AP',
+            'Amazonas' => 'AM',
+            'Para' => 'PA',
+            'Rondonia' => 'RO',
+            'Roraima' => 'RR',
+            'Tocantins' => 'TO'
         ];
 
         $stateClean = $this->normalizeString($state);
@@ -101,21 +119,25 @@ class WeatherService
 
     public function searchCities(string $query)
     {
-        $response = Http::withoutVerifying()->get($this->geoUrl, [
-            'q' => $query,
-            'limit' => 5,
-            'appid' => $this->apiKey
-        ]);
 
-        if ($response->failed()) return [];
+        return \Illuminate\Support\Facades\Cache::remember("search_city_" . md5($query), 3600, function () use ($query) {
 
-        return collect($response->json())->map(function ($item) {
-            return [
-                'name' => $item['name'],
-                'state' => $this->formatState($item['state'] ?? null),
-                'country' => $item['country'],
-                'full_name' => $item['name'] . (isset($item['state']) ? " - " . $item['state'] : "")
-            ];
-        })->all();
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->geoUrl, [
+                'q' => $query,
+                'limit' => 5,
+                'appid' => $this->apiKey
+            ]);
+
+            if ($response->failed()) return [];
+
+            return collect($response->json())->map(function ($item) {
+                return [
+                    'name' => $item['name'],
+                    'state' => $this->formatState($item['state'] ?? null),
+                    'country' => $item['country'],
+                    'full_name' => $item['name'] . (isset($item['state']) ? " - " . $item['state'] : "")
+                ];
+            })->all();
+        });
     }
 }
