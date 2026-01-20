@@ -14,17 +14,27 @@ class WeatherController extends Controller
         $this->weatherService = $weatherService;
     }
 
-   public function show($city)
-{
-    $decodedCity = urldecode($city);
-    $data = $this->weatherService->getWeather($decodedCity);
-    return $data ? response()->json($data) : response()->json(['message' => 'Erro'], 404);
-}
+    public function getClima($city)
+    {
+        try {
+            $decodedCity = urldecode($city);
+            $data = $this->weatherService->getForecastData($decodedCity);
 
-public function search($query)
-{
-    // Este método deve chamar a função searchCities que criamos no seu Service
-    $cities = $this->weatherService->searchCities(urldecode($query));
-    return response()->json($cities);
-}
+            if ($data) {
+                return response()->json($data, 200);
+            }
+
+            return response()->json(['error' => 'Not Found'], 404);
+        } catch (\Exception $e) {
+            // Isso vai imprimir o erro real no seu log se falhar
+            \Log::error("Erro no Controller: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function search($query)
+    {
+        $cities = $this->weatherService->searchCities(urldecode($query));
+        return response()->json($cities);
+    }
 }

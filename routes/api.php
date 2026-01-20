@@ -3,8 +3,8 @@ use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
 // Rota para o Clima Final
-Route::get('/clima/{city}', [WeatherController::class, 'show'])
-     ->where('city', '.*');
+Route::get('/clima/{city}', [WeatherController::class, 'getClima']);
+   
 
 // Rota para as Sugestões (Autocomplete)
 Route::get('/cidades/busca/{query}', [WeatherController::class, 'search'])
