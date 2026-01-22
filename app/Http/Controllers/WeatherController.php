@@ -37,4 +37,23 @@ class WeatherController extends Controller
         $cities = $this->weatherService->searchCities(urldecode($query));
         return response()->json($cities);
     }
+    // Novo endpoint: /api/clima/coordenadas?lat=-8.05&lon=-34.88
+    public function getByCoordinates(Request $request)
+    {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lon' => 'required|numeric',
+        ]);
+
+        $data = $this->weatherService->getForecastByCoordinates(
+            $request->lat,
+            $request->lon
+        );
+
+        if ($data) {
+            return response()->json($data, 200);
+        }
+
+        return response()->json(['error' => 'Localização não encontrada'], 404);
+    }
 }

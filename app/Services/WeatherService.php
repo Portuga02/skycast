@@ -140,4 +140,51 @@ class WeatherService
             })->all();
         });
     }
+
+   public function getForecastByCoordinates($lat, $lon)
+    {
+        $cacheKey = "forecast_coords_" . round($lat, 4) . "_" . round($lon, 4);
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 900, function () use ($lat, $lon) {
+            
+            // 1. Pega a Previsão (Geralmente retorna "Recife")
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->forecastUrl, [
+                'lat' => $lat,
+                'lon' => $lon,
+                'appid' => $this->apiKey,
+                'units' => 'metric',
+                'lang' => 'pt_br'
+            ]);
+
+            if ($response->failed()) return null;
+
+            $dados = $response->json();
+
+            // 2. Pega o detalhe do local (Geralmente retorna o Bairro, ex: "Iputinga", "Graças")
+            $geoResponse = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->geoUrl . "/reverse", [
+                'lat' => $lat,
+                'lon' => $lon,
+                'limit' => 1,
+                'appid' => $this->apiKey
+            ]);
+
+            $state = null;
+            $bairroOuCidadeEspecifica = null;
+
+            if ($geoResponse->successful() && isset($geoResponse->json()[0])) {
+                $geoData = $geoResponse->json()[0];
+                $state = $geoData['state'] ?? null;
+                $bairroOuCidadeEspecifica = $geoData['name'] ?? null;
+            }
+
+            // AJUSTE AQUI: Se a API de Geo achou um nome (Bairro), usamos ele em vez do genérico
+            if ($bairroOuCidadeEspecifica) {
+                $dados['city']['name'] = $bairroOuCidadeEspecifica;
+            }
+
+            $dados['city']['state_uf'] = $this->formatState($state);
+
+            return $dados;
+        });
+    }
 }
