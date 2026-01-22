@@ -2,15 +2,13 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http; // ESSENCIAL
-use Illuminate\Support\Facades\Cache; // ESSENCIAL
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class WeatherService
 {
     protected $apiKey;
     protected $geoUrl = 'http://api.openweathermap.org/geo/1.0/direct';
-    // Mudamos a base principal para forecast para aproveitar tudo da API
     protected $forecastUrl = 'https://api.openweathermap.org/data/2.5/forecast';
 
     public function __construct()
@@ -26,11 +24,10 @@ class WeatherService
         $cityQuery = str_replace('-', ',', $city);
         $cityQuery = trim(preg_replace('/\s+/', ' ', $cityQuery));
 
-        // Usamos o seu Cache v3
-        return \Illuminate\Support\Facades\Cache::remember("forecast_city_v1_" . md5($cityQuery), 900, function () use ($cityQuery) {
+      return \Illuminate\Support\Facades\Cache::remember("forecast_city_v20_" . md5($cityQuery), 900, function () use ($cityQuery) {
 
-            // 1. Sua Geocoding API (que já funciona)
-            $geoResponse = \Illuminate\Support\Facades\Http::get($this->geoUrl, [
+            // 1. Geocoding
+            $geoResponse = Http::withoutVerifying()->get($this->geoUrl, [
                 'q' => $cityQuery,
                 'limit' => 1,
                 'appid' => $this->apiKey
@@ -40,8 +37,8 @@ class WeatherService
 
             $geoData = $geoResponse->json()[0];
 
-            // 2. Chamada para FORECAST (para os 5 dias)
-            $response = Http::withoutVerifying()->get('https://api.openweathermap.org/data/2.5/forecast', [
+            // 2. Forecast
+            $response = Http::withoutVerifying()->get($this->forecastUrl, [
                 'lat' => $geoData['lat'],
                 'lon' => $geoData['lon'],
                 'appid' => $this->apiKey,
@@ -51,104 +48,30 @@ class WeatherService
 
             if ($response->failed()) return null;
 
+            // CORREÇÃO 1: Definimos a variável $dados aqui
             $dados = $response->json();
 
-            // Injetamos a UF usando sua função formatState
+            // Injetamos a UF
             $dados['city']['state_uf'] = $this->formatState($geoData['state'] ?? null);
+            
+            // Injetamos a Qualidade do Ar
+            $dados['air_quality'] = $this->getAirQuality($geoData['lat'], $geoData['lon']);
 
             return $dados;
         });
     }
 
     /**
-     * Sua lógica de formatação de estados (Mantida exatamente como você fez)
+     * Busca por coordenadas (Geolocalização)
      */
-    public function formatState(?string $state)
+    public function getForecastByCoordinates($lat, $lon)
     {
-        if (!$state) return null;
+        $cacheKey = "forecast_coords_v2_" . round($lat, 4) . "_" . round($lon, 4);
 
-        $states = [
-            'Paraiba' => 'PB',
-            'Pernambuco' => 'PE',
-            'Ceara' => 'CE',
-            'Rio Grande do Norte' => 'RN',
-            'Bahia' => 'BA',
-            'Alagoas' => 'AL',
-            'Sergipe' => 'SE',
-            'Maranhao' => 'MA',
-            'Piaui' => 'PI',
-            'Sao Paulo' => 'SP',
-            'Rio de Janeiro' => 'RJ',
-            'Minas Gerais' => 'MG',
-            'Espirito Santo' => 'ES',
-            'Parana' => 'PR',
-            'Rio Grande do Sul' => 'RS',
-            'Santa Catarina' => 'SC',
-            'Goias' => 'GO',
-            'Mato Grosso' => 'MT',
-            'Mato Grosso do Sul' => 'MS',
-            'Distrito Federal' => 'DF',
-            'Acre' => 'AC',
-            'Amapa' => 'AP',
-            'Amazonas' => 'AM',
-            'Para' => 'PA',
-            'Rondonia' => 'RO',
-            'Roraima' => 'RR',
-            'Tocantins' => 'TO'
-        ];
-
-        $stateClean = $this->normalizeString($state);
-
-        foreach ($states as $name => $initial) {
-            if ($this->normalizeString($name) === $stateClean) {
-                return $initial;
-            }
-        }
-
-        return $state;
-    }
-
-    private function normalizeString(string $string)
-    {
-        return str_replace(
-            ['á', 'é', 'í', 'ó', 'ú', 'ã', 'õ', 'â', 'ê', 'î', 'ô', 'û'],
-            ['a', 'e', 'i', 'o', 'u', 'a', 'o', 'a', 'e', 'i', 'o', 'u'],
-            mb_strtolower($string)
-        );
-    }
-
-    public function searchCities(string $query)
-    {
-
-        return \Illuminate\Support\Facades\Cache::remember("search_city_" . md5($query), 3600, function () use ($query) {
-
-            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->geoUrl, [
-                'q' => $query,
-                'limit' => 5,
-                'appid' => $this->apiKey
-            ]);
-
-            if ($response->failed()) return [];
-
-            return collect($response->json())->map(function ($item) {
-                return [
-                    'name' => $item['name'],
-                    'state' => $this->formatState($item['state'] ?? null),
-                    'country' => $item['country'],
-                    'full_name' => $item['name'] . (isset($item['state']) ? " - " . $item['state'] : "")
-                ];
-            })->all();
-        });
-    }
-
-   public function getForecastByCoordinates($lat, $lon)
-    {
-        $cacheKey = "forecast_coords_" . round($lat, 4) . "_" . round($lon, 4);
-
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 900, function () use ($lat, $lon) {
+        return Cache::remember($cacheKey, 900, function () use ($lat, $lon) {
             
-            // 1. Pega a Previsão (Geralmente retorna "Recife")
-            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->forecastUrl, [
+            // 1. Forecast
+            $response = Http::withoutVerifying()->get($this->forecastUrl, [
                 'lat' => $lat,
                 'lon' => $lon,
                 'appid' => $this->apiKey,
@@ -160,8 +83,8 @@ class WeatherService
 
             $dados = $response->json();
 
-            // 2. Pega o detalhe do local (Geralmente retorna o Bairro, ex: "Iputinga", "Graças")
-            $geoResponse = \Illuminate\Support\Facades\Http::withoutVerifying()->get($this->geoUrl . "/reverse", [
+            // 2. Reverse Geocoding (Para pegar o Bairro)
+            $geoResponse = Http::withoutVerifying()->get($this->geoUrl . "/reverse", [
                 'lat' => $lat,
                 'lon' => $lon,
                 'limit' => 1,
@@ -177,14 +100,92 @@ class WeatherService
                 $bairroOuCidadeEspecifica = $geoData['name'] ?? null;
             }
 
-            // AJUSTE AQUI: Se a API de Geo achou um nome (Bairro), usamos ele em vez do genérico
+            // Injeta o nome do bairro se existir
             if ($bairroOuCidadeEspecifica) {
                 $dados['city']['name'] = $bairroOuCidadeEspecifica;
             }
 
+            // Injeta UF
             $dados['city']['state_uf'] = $this->formatState($state);
+            
+            // CORREÇÃO 2: Removemos a linha que resetava o $dados aqui
+            
+            // Injeta Qualidade do Ar
+            $dados['air_quality'] = $this->getAirQuality($lat, $lon);
 
             return $dados;
+        });
+    }
+
+    /**
+     * Busca a qualidade do ar (AQI)
+     */
+    private function getAirQuality($lat, $lon)
+    {
+        return Cache::remember("pollution_{$lat}_{$lon}", 3600, function () use ($lat, $lon) {
+            $response = Http::withoutVerifying()->get('http://api.openweathermap.org/data/2.5/air_pollution', [
+                'lat' => $lat,
+                'lon' => $lon,
+                'appid' => $this->apiKey
+            ]);
+
+            if ($response->successful()) {
+                return $response->json()['list'][0]['main']['aqi'] ?? null;
+            }
+            
+            return null;
+        });
+    }
+
+    // --- Métodos Auxiliares ---
+
+    public function formatState(?string $state)
+    {
+        if (!$state) return null;
+        $states = [
+            'Paraiba' => 'PB', 'Pernambuco' => 'PE', 'Ceara' => 'CE', 'Rio Grande do Norte' => 'RN',
+            'Bahia' => 'BA', 'Alagoas' => 'AL', 'Sergipe' => 'SE', 'Maranhao' => 'MA',
+            'Piaui' => 'PI', 'Sao Paulo' => 'SP', 'Rio de Janeiro' => 'RJ', 'Minas Gerais' => 'MG',
+            'Espirito Santo' => 'ES', 'Parana' => 'PR', 'Rio Grande do Sul' => 'RS', 'Santa Catarina' => 'SC',
+            'Goias' => 'GO', 'Mato Grosso' => 'MT', 'Mato Grosso do Sul' => 'MS', 'Distrito Federal' => 'DF',
+            'Acre' => 'AC', 'Amapa' => 'AP', 'Amazonas' => 'AM', 'Para' => 'PA', 'Rondonia' => 'RO',
+            'Roraima' => 'RR', 'Tocantins' => 'TO'
+        ];
+        $stateClean = $this->normalizeString($state);
+        foreach ($states as $name => $initial) {
+            if ($this->normalizeString($name) === $stateClean) return $initial;
+        }
+        return $state;
+    }
+
+    private function normalizeString(string $string)
+    {
+        return str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ã', 'õ', 'â', 'ê', 'î', 'ô', 'û'],
+            ['a', 'e', 'i', 'o', 'u', 'a', 'o', 'a', 'e', 'i', 'o', 'u'],
+            mb_strtolower($string)
+        );
+    }
+
+    public function searchCities(string $query)
+    {
+        return Cache::remember("search_city_" . md5($query), 3600, function () use ($query) {
+            $response = Http::withoutVerifying()->get($this->geoUrl, [
+                'q' => $query,
+                'limit' => 5,
+                'appid' => $this->apiKey
+            ]);
+
+            if ($response->failed()) return [];
+
+            return collect($response->json())->map(function ($item) {
+                return [
+                    'name' => $item['name'],
+                    'state' => $this->formatState($item['state'] ?? null),
+                    'country' => $item['country'],
+                    'full_name' => $item['name'] . (isset($item['state']) ? " - " . $item['state'] : "")
+                ];
+            })->all();
         });
     }
 }

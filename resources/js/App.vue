@@ -13,6 +13,7 @@
             Engineer</p>
           <p class="text-xs text-slate-400 font-medium italic">Laravel + Vue.js + OpenWeather</p>
         </div>
+
       </header>
 
       <div class="w-full max-w-md relative mb-10 z-50">
@@ -66,34 +67,78 @@
         <div
           class="w-full bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col justify-center">
           <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
+
           <div class="relative z-10 text-center">
-            <p class="text-blue-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+
+            <p class="text-blue-400 text-xs font-bold uppercase tracking-widest mb-2 italic">
               {{ dadosClima.weather[0].description }}
             </p>
+
+            <div v-if="dadosClima.air_quality" class="mb-4 flex justify-center">
+              <span :class="getAirQualityInfo(dadosClima.air_quality).color"
+                class="px-3 py-1 rounded-full text-[10px] font-black uppercase text-white shadow-lg flex items-center gap-2">
+                {{ getAirQualityInfo(dadosClima.air_quality).emoji }}
+                Ar: {{ getAirQualityInfo(dadosClima.air_quality).text }}
+              </span>
+            </div>
             <h2 class="text-4xl font-extrabold mb-6 tracking-tight">
               {{ nomeExibicao || dadosClima.name }}
-              <span class="text-slate-500 italic font-medium block text-xl mt-1"> {{ dadosClima.state ? dadosClima.state
-                + ' - BR' : 'BR' }}</span>
+              <span class="text-slate-500 italic font-medium block text-xl mt-1">
+                {{ dadosClima.state ? dadosClima.state + ' - BR' : 'BR' }}
+              </span>
             </h2>
+
             <div class="flex items-center justify-center gap-6 mb-4">
               <span class="text-8xl font-black tracking-tighter">{{ Math.round(dadosClima.main.temp) }}°</span>
               <span class="text-6xl drop-shadow-2xl">{{ obterIcone(dadosClima.main.temp) }}</span>
             </div>
+
             <div
               class="flex justify-center gap-8 mt-6 pt-6 border-t border-slate-800 text-slate-400 text-xs uppercase font-bold tracking-widest">
               <span class="flex items-center gap-1">💧 {{ dadosClima.main.humidity }}%</span>
               <span class="flex items-center gap-1">🌬️ {{ Math.round(dadosClima.wind.speed) }} km/h</span>
             </div>
+
           </div>
         </div>
       </transition>
 
       <div class="w-full h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white relative z-0">
-        <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon" />
+        <div class="w-full h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white relative z-0">
+          <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
+            :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id" :temp="dadosClima.main.temp"
+            :temp-min="dadosClima.main.temp_min" :temp-max="dadosClima.main.temp_max" :timezone="dadosClima.timezone" />
+        </div>
       </div>
 
     </div>
+    <div v-if="previsaoHoraria.length > 0" class="w-full max-w-6xl px-6 mb-8 relative z-20">
+      <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 pl-2">
+        Nas Próximas 24 Horas
+      </h3>
 
+      <div class="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
+
+        <div v-for="hora in previsaoHoraria" :key="hora.dt"
+          class="min-w-[100px] snap-start bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center justify-between hover:bg-white transition-colors">
+          <span class="text-xs font-bold text-slate-400 mb-2">
+            {{ new Date(hora.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }}
+          </span>
+
+          <img :src="`https://openweathermap.org/img/wn/${hora.weather[0].icon}.png`"
+            class="w-10 h-10 drop-shadow-sm mb-1" alt="ícone">
+
+          <span class="text-xl font-black text-slate-700">
+            {{ Math.round(hora.main.temp) }}°
+          </span>
+
+          <span v-if="hora.pop > 0" class="text-[9px] font-bold text-blue-500 mt-1 bg-blue-50 px-2 py-0.5 rounded-full">
+            {{ Math.round(hora.pop * 100) }}% 💧
+          </span>
+        </div>
+
+      </div>
+    </div>
     <div v-if="previsaoSemana.length > 0" class="w-full max-w-6xl px-6 z-20">
       <div class="flex items-center gap-4 mb-6">
         <div class="h-px bg-slate-200 flex-1"></div>
@@ -130,6 +175,7 @@ const dadosClima = ref(null);
 const nomeExibicao = ref(null);
 const carregando = ref(false);
 const previsaoSemana = ref([]);
+const previsaoHoraria = ref([]);
 
 const buscarSugestoes = async () => {
   if (cidadeInput.value.length < 3) {
@@ -154,20 +200,19 @@ const selecionarCidade = (cidadeObj) => {
 
 const executarBuscaFinal = async (termo) => {
   if (!termo) return;
+
   carregando.value = true;
   sugestoes.value = [];
+
   try {
     const termoLimpo = termo.replace(/\s*-\s*/, '-');
     const resposta = await axios.get(`/api/clima/${encodeURIComponent(termoLimpo)}`);
+
     if (resposta.data && resposta.data.list) {
-      const climaAtual = resposta.data.list[0];
-      dadosClima.value = {
-        ...climaAtual,
-        name: resposta.data.city.name,
-        coord: resposta.data.city.coord,
-        state: resposta.data.city.state_uf || ''
-      };
-      previsaoSemana.value = resposta.data.list.filter(item => item.dt_txt.includes("12:00:00"));
+      // CORREÇÃO: Em vez de montar na mão, usamos a função auxiliar
+      // que já sabe ler a qualidade do ar corretamente.
+      processarRespostaClima(resposta.data);
+
       cidadeInput.value = '';
     }
   } catch (erro) {
@@ -202,14 +247,14 @@ const usarLocalizacao = () => {
     async (posicao) => {
       try {
         const { latitude, longitude } = posicao.coords;
-        
+
         const resposta = await axios.get(`/api/clima/coordenadas`, {
           params: { lat: latitude, lon: longitude }
         });
 
         if (resposta.data && resposta.data.list) {
           processarRespostaClima(resposta.data);
-          cidadeInput.value = ''; 
+          cidadeInput.value = '';
         }
       } catch (erro) {
         console.error("Erro na geolocalização:", erro);
@@ -227,8 +272,16 @@ const usarLocalizacao = () => {
   );
 };
 
-// Dica de Refatoração: Criei essa função auxiliar para não repetir código
-// Mova a lógica de preencher o `dadosClima` e `previsaoSemana` para cá
+const getAirQualityInfo = (aqi) => {
+  switch (aqi) {
+    case 1: return { text: 'Excelente', color: 'bg-green-500', emoji: '🍃' };
+    case 2: return { text: 'Boa', color: 'bg-lime-500', emoji: '😊' };
+    case 3: return { text: 'Moderada', color: 'bg-yellow-500', emoji: '😐' };
+    case 4: return { text: 'Ruim', color: 'bg-orange-500', emoji: '😷' };
+    case 5: return { text: 'Péssima', color: 'bg-red-600', emoji: '☠️' };
+    default: return { text: 'N/A', color: 'bg-slate-500', emoji: '❓' };
+  }
+};
 const processarRespostaClima = (dados) => {
   const climaAtual = dados.list[0];
 
@@ -236,9 +289,14 @@ const processarRespostaClima = (dados) => {
     ...climaAtual,
     name: dados.city.name,
     coord: dados.city.coord,
-    state: dados.city.state_uf || ''
+    state: dados.city.state_uf || '',
+    air_quality: dados.air_quality || null
   };
 
+  // NOVO: Pegamos os primeiros 8 itens (8 x 3h = 24 horas)
+  previsaoHoraria.value = dados.list.slice(0, 8);
+
+  // MANTÉM O ANTIGO: Filtra para mostrar o meio-dia dos próximos dias
   previsaoSemana.value = dados.list.filter(item => item.dt_txt.includes("12:00:00"));
 };
 </script>

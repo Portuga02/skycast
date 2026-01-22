@@ -56,4 +56,20 @@ class WeatherController extends Controller
 
         return response()->json(['error' => 'Localização não encontrada'], 404);
     }
+   // Adicione isso no final do seu WeatherController.php
+    public function getMapTile($z, $x, $y)
+    {
+        $apiKey = config('services.openweather.key');
+        // Adicionei withoutVerifying() para evitar erros de SSL no Windows/Localhost
+        $url = "https://tile.openweathermap.org/map/precipitation_new/{$z}/{$x}/{$y}.png?appid={$apiKey}";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($url);
+            
+            return response($response->body())
+                ->header('Content-Type', 'image/png');
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro mapa'], 500);
+        }
+    }
 }
