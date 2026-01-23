@@ -142,14 +142,23 @@
         </div>
       </transition>
 
-      <div :class="isDark ? 'border-slate-800 shadow-blue-900/10' : 'border-white shadow-slate-200'"
-        class="w-full h-[570px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 relative z-0 bg-slate-200 transition-all duration-500">
+   <div class="w-full h-[570px] relative z-0 mb-12"> 
+  
+  <MapWidget 
+    v-if="dadosClima && dadosClima.coord" 
+    :lat="dadosClima.coord.lat" 
+    :lon="dadosClima.coord.lon"
+    :temp="dadosClima.main.temp" 
+    :icon-code="dadosClima.weather[0].icon" 
+    :weather-id="dadosClima.weather[0].id"
+    :timezone="dadosClima.timezone" 
+    :nearby="dadosClima.nearby" 
+    :is-dark="isDark"
+    :is-day="verificarSeEhDia(dadosClima)" 
+    @mapClick="handleMapClick" 
+  />
 
-        <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
-          :temp="dadosClima.main.temp" :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id"
-          :timezone="dadosClima.timezone" :nearby="dadosClima.nearby" :is-dark="isDark"
-          :is-day="verificarSeEhDia(dadosClima)" @mapClick="handleMapClick" />
-      </div>
+</div>
     </div>
 
     <div v-if="dadosClima && previsaoHoraria.length > 0"

@@ -39,6 +39,7 @@ class WeatherController extends Controller
     }
 
     // --- DETETIVE DE RUA (GPS) ---
+    // --- DETETIVE DE RUA + VIZINHOS ---
     public function climaPorCoordenadas(Request $request)
     {
         $request->validate(['lat' => 'required', 'lon' => 'required']);
@@ -48,8 +49,7 @@ class WeatherController extends Controller
         $apiKey = env('OPENWEATHER_API_KEY');
 
         try {
-            // 1. BUSCA O CLIMA (COM CORREÇÃO DE SSL)
-            // Adicionei withoutVerifying() aqui!
+            // 1. BUSCA O CLIMA DO LOCAL (Forecast)
             $weatherResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/forecast", [
                 'lat' => $lat,
                 'lon' => $lon,
@@ -58,15 +58,33 @@ class WeatherController extends Controller
                 'lang' => 'pt_br'
             ]);
 
-            // Se falhar a conexão com a API, lança erro
             if ($weatherResponse->failed()) {
                 throw new \Exception("Falha OpenWeather: " . $weatherResponse->status());
             }
 
             $weatherData = $weatherResponse->json();
 
-            // 2. BUSCA A RUA (COM CORREÇÃO DE SSL)
-            // Adicionei withoutVerifying() aqui também!
+            // 2. BUSCA VIZINHOS (A PEÇA QUE FALTAVA!) 🔍
+            // Usamos o endpoint /find para achar cidades num raio próximo
+            try {
+                $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
+                    'lat' => $lat,
+                    'lon' => $lon,
+                    'cnt' => 5, // Traz 5 cidades vizinhas
+                    'appid' => $apiKey,
+                    'units' => 'metric',
+                    'lang' => 'pt_br'
+                ]);
+
+                if ($nearbyResponse->successful()) {
+                    // Injeta a lista de vizinhos na resposta final
+                    $weatherData['nearby'] = $nearbyResponse->json()['list'];
+                }
+            } catch (\Exception $e) {
+                // Se falhar, segue sem vizinhos
+            }
+
+            // 3. BUSCA O NOME DA RUA (Nominatim)
             try {
                 $geoResponse = Http::withoutVerifying()
                     ->withHeaders(['User-Agent' => 'SkyCastPro/1.0'])
@@ -94,7 +112,6 @@ class WeatherController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                // Se o Nominatim falhar, seguimos só com o clima
                 \Log::error("Erro Nominatim: " . $e->getMessage());
             }
 

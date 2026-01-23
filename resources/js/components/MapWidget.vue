@@ -1,17 +1,37 @@
 <template>
-  <div class="relative w-full h-full">
-    <div id="mapContainer" class="w-full h-full z-0 relative cursor-pointer outline-none"></div>
+  <div class="w-full h-full flex flex-row gap-4">
 
-    <div class="absolute top-4 right-4 z-[500] flex flex-col gap-2">
-      <button v-for="camada in camadasDisponiveis" :key="camada.id" @click="trocarCamada(camada.id)"
-        class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 rounded-xl backdrop-blur-md border shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group"
-        :class="camadaAtiva === camada.id
-          ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-500/30'
-          : 'bg-white/80 dark:bg-slate-900/80 border-white/20 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:scale-105'">
+    <div class="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 relative transition-all duration-500 z-0"
+      :class="isDark ? 'border-slate-800 shadow-blue-900/10' : 'border-white shadow-slate-200'">
 
-        <span class="text-lg">{{ camada.icone }}</span>
-        <span class="hidden md:block text-[10px] font-bold uppercase tracking-wider">{{ camada.nome }}</span>
+      <div id="mapContainer"
+        class="w-full h-full z-0 relative cursor-pointer outline-none bg-slate-200 dark:bg-slate-900"></div>
+
+    </div>
+
+    <div class="flex flex-col gap-3 pt-10 relative z-50">
+
+      <button v-for="camada in camadasDisponiveis" :key="camada.id" @click="trocarCamada(camada.id)" class="
+          w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-lg border-2 group relative
+        " :class="camadaAtiva === camada.id
+          ? 'bg-blue-600 border-blue-500 text-white shadow-blue-500/40 scale-110'
+          : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:scale-105 hover:border-blue-200 dark:hover:border-slate-600'
+          ">
+
+        <span class="text-3xl filter drop-shadow-sm group-hover:animate-pulse">{{ camada.icone }}</span>
+
+        <span class="
+          absolute right-full mr-4 px-3 py-1.5 rounded-xl 
+          bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider
+          opacity-0 group-hover:opacity-100 transition-opacity duration-200 
+          pointer-events-none whitespace-nowrap shadow-2xl z-50 min-w-max
+        ">
+          {{ camada.nome }}
+          <span class="absolute top-1/2 -right-1.5 -mt-1 w-2.5 h-2.5 bg-slate-900 rotate-45"></span>
+        </span>
+
       </button>
+
     </div>
   </div>
 </template>
@@ -28,8 +48,8 @@ const emit = defineEmits(['mapClick']);
 
 const mapContainer = ref(null);
 let map = null;
-let tileLayer = null;      // Camada Base (CartoDB)
-let weatherLayer = null;   // Camada Clima (OpenWeather)
+let tileLayer = null;
+let weatherLayer = null;
 let markersGroup = null;
 
 const camadasDisponiveis = [
@@ -40,35 +60,30 @@ const camadasDisponiveis = [
   { id: 'wind_new', nome: 'Vento', icone: '🌬️' }
 ];
 
-const camadaAtiva = ref(null); // Começa sem camada extra
+const camadaAtiva = ref(null);
 
+// --- MAPAS BASE (MUDANÇA AQUI) ---
 const tileUrls = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+  // Usamos o mapa CLARO e COLORIDO do OSM aqui
+  dark: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  light: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 };
 
-// --- LÓGICA DE TROCA DE CAMADAS ---
 const trocarCamada = (layerId) => {
   camadaAtiva.value = layerId;
-
-  // 1. Remove a camada de clima anterior se existir
   if (weatherLayer) {
     map.removeLayer(weatherLayer);
     weatherLayer = null;
   }
-
-  // 2. Se o usuário escolheu "Limpo", para por aqui
   if (!layerId) return;
 
-  // 3. Adiciona a nova camada via Proxy do Laravel
   const urlProxy = `/api/map-tile/${layerId}/{z}/{x}/{y}`;
   weatherLayer = L.tileLayer(urlProxy, {
     opacity: 0.8,
-    zIndex: 10 // Garante que fique acima do mapa base
+    zIndex: 10
   }).addTo(map);
 };
 
-// --- ICONES DOS MARCADORES ---
 const obterIconeVisual = (iconCode, isMainMarker = false) => {
   let codigoFinal = iconCode;
   if (isMainMarker) {
@@ -82,8 +97,9 @@ const obterIconeVisual = (iconCode, isMainMarker = false) => {
   return mapa[codigoFinal] || '🌡️';
 };
 
-const updateBaseTiles = () => {
+const updateTiles = () => {
   if (tileLayer) {
+
     tileLayer.setUrl(props.isDark ? tileUrls.dark : tileUrls.light);
   }
 };
@@ -131,8 +147,13 @@ const renderMapData = () => {
 };
 
 onMounted(() => {
+  setTimeout(() => { if (map) map.invalidateSize(); }, 100);
   map = L.map('mapContainer', { zoomControl: false, attributionControl: false }).setView([props.lat, props.lon], 11);
-  tileLayer = L.tileLayer(props.isDark ? tileUrls.dark : tileUrls.light, { maxZoom: 19 }).addTo(map);
+
+  // Inicia com o tile correto
+  const urlInicial = props.isDark ? tileUrls.dark : tileUrls.light;
+  tileLayer = L.tileLayer(urlInicial, { maxZoom: 19 }).addTo(map);
+
   markersGroup = L.layerGroup().addTo(map);
 
   map.on('click', (e) => {
@@ -144,7 +165,7 @@ onMounted(() => {
   renderMapData();
 });
 
-watch(() => props.isDark, updateBaseTiles);
+watch(() => props.isDark, updateTiles);
 watch(() => [props.lat, props.lon, props.isDay], ([lat, lon]) => {
   if (map) {
     map.flyTo([lat, lon], 11, { duration: 2.0 });
@@ -163,7 +184,6 @@ watch(() => [props.lat, props.lon, props.isDay], ([lat, lon]) => {
   border: none;
 }
 
-/* Remove borda azul ao clicar no mapa */
 .leaflet-container:focus {
   outline: none;
 }
