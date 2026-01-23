@@ -71,7 +71,35 @@ const getAdvancedIcon = (code, id, temp, timezone, min, max, isMain = true) => {
     </div>`;
   return L.divIcon({ html, className: '', iconSize: isMain ? [64, 64] : [40, 40], iconAnchor: isMain ? [32, 64] : [20, 20], popupAnchor: [0, -70] });
 };
+// Traduz o código da OpenWeather (ex: '02n') para o Emoji perfeito
+const obterIconeVisual = (iconCode) => {
+  const mapa = {
+    // --- DIA ☀️ ---
+    '01d': '☀️',   // Céu limpo
+    '02d': '🌤️',   // Poucas nuvens
+    '03d': '☁️',   // Nuvens dispersas
+    '04d': '☁️',   // Nublado
+    '09d': '🌧️',   // Chuva
+    '10d': '🌦️',   // Chuva e sol
+    '11d': '⛈️',   // Trovoadas
+    '13d': '❄️',   // Neve
+    '50d': '🌫️',   // Neblina
 
+    // --- NOITE 🌙 (O Pulo do Gato!) ---
+    '01n': '🌙',   // Céu limpo (Lua Clara, como você pediu!)
+    '02n': '☁️🌙', // Poucas nuvens (Lua + Nuvem)
+    '03n': '☁️',   // Nuvens dispersas
+    '04n': '☁️',   // Nublado
+    '09n': '🌧️',   // Chuva
+    '10n': '🌧️',   // Chuva
+    '11n': '⛈️',   // Trovoadas
+    '13n': '❄️',   // Neve
+    '50n': '🌫️'    // Neblina
+  };
+  
+  // Retorna o ícone ou um padrão se não encontrar
+  return mapa[iconCode] || '🌡️';
+};
 const adicionarCamadaClima = () => {
   if (weatherLayer) map.removeLayer(weatherLayer);
   const API_KEY = "a3f1754aba98434b9bf4a0e99b213a84";
