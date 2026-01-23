@@ -52,10 +52,10 @@ class WeatherService
             $dados = $response->json();
 
             // Injetamos a UF
-            $dados['city']['state_uf'] = $this->formatState($geoData['state'] ?? null);
-            
-            // Injetamos a Qualidade do Ar
-            $dados['air_quality'] = $this->getAirQuality($geoData['lat'], $geoData['lon']);
+          $dados['air_quality'] = $this->getAirQuality($geoData['lat'], $geoData['lon']);
+
+            // NOVO: Injetamos os Vizinhos!
+            $dados['nearby'] = $this->getNearbyWeather($geoData['lat'], $geoData['lon']);
 
             return $dados;
         });
@@ -66,11 +66,12 @@ class WeatherService
      */
     public function getForecastByCoordinates($lat, $lon)
     {
-        $cacheKey = "forecast_coords_v2_" . round($lat, 4) . "_" . round($lon, 4);
+        // Arredonda para melhorar o cache (GPS muda muito os decimais)
+        $cacheKey = "forecast_coords_v3_" . round($lat, 4) . "_" . round($lon, 4);
 
         return Cache::remember($cacheKey, 900, function () use ($lat, $lon) {
             
-            // 1. Forecast
+            // 1. Busca a Previsão do Tempo (Forecast) usando o GPS direto
             $response = Http::withoutVerifying()->get($this->forecastUrl, [
                 'lat' => $lat,
                 'lon' => $lon,
@@ -83,7 +84,7 @@ class WeatherService
 
             $dados = $response->json();
 
-            // 2. Reverse Geocoding (Para pegar o Bairro)
+            // 2. Tenta descobrir o nome do Bairro/Cidade (Reverse Geocoding)
             $geoResponse = Http::withoutVerifying()->get($this->geoUrl . "/reverse", [
                 'lat' => $lat,
                 'lon' => $lon,
@@ -91,27 +92,26 @@ class WeatherService
                 'appid' => $this->apiKey
             ]);
 
-            $state = null;
+            // Variáveis de controle
             $bairroOuCidadeEspecifica = null;
 
             if ($geoResponse->successful() && isset($geoResponse->json()[0])) {
                 $geoData = $geoResponse->json()[0];
-                $state = $geoData['state'] ?? null;
                 $bairroOuCidadeEspecifica = $geoData['name'] ?? null;
             }
 
-            // Injeta o nome do bairro se existir
+            // Se achou o nome do bairro, substitui no resultado
             if ($bairroOuCidadeEspecifica) {
                 $dados['city']['name'] = $bairroOuCidadeEspecifica;
             }
 
-            // Injeta UF
-            $dados['city']['state_uf'] = $this->formatState($state);
+            // 3. Injeções Extras (Usamos $lat e $lon originais para garantir que não quebre)
             
-            // CORREÇÃO 2: Removemos a linha que resetava o $dados aqui
-            
-            // Injeta Qualidade do Ar
+            // Qualidade do Ar
             $dados['air_quality'] = $this->getAirQuality($lat, $lon);
+
+            // Vizinhos (Nearby)
+            $dados['nearby'] = $this->getNearbyWeather($lat, $lon);
 
             return $dados;
         });
@@ -186,6 +186,28 @@ class WeatherService
                     'full_name' => $item['name'] . (isset($item['state']) ? " - " . $item['state'] : "")
                 ];
             })->all();
+        });
+    }
+    /**
+     * Busca estações meteorológicas próximas (Vizinhos)
+     */
+    public function getNearbyWeather($lat, $lon)
+    {
+        return Cache::remember("nearby_{$lat}_{$lon}", 900, function () use ($lat, $lon) {
+            $response = Http::withoutVerifying()->get('https://api.openweathermap.org/data/2.5/find', [
+                'lat' => $lat,
+                'lon' => $lon,
+                'cnt' => 20, // Quantidade de vizinhos (pode aumentar se quiser)
+                'units' => 'metric',
+                'lang' => 'pt_br',
+                'appid' => $this->apiKey
+            ]);
+
+            if ($response->successful()) {
+                return $response->json()['list'];
+            }
+
+            return [];
         });
     }
 }
