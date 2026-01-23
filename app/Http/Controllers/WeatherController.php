@@ -87,4 +87,42 @@ class WeatherController extends Controller
             ->header('Content-Type', 'image/png')
             ->header('Cache-Control', 'no-cache, no-store');
     }
+    public function climaPorCoordenadas(Request $request)
+    {
+        $lat = $request->input('lat');
+        $lon = $request->input('lon');
+        $apiKey = env('OPENWEATHER_API_KEY');
+
+        // 1. Busca a Previsão do Tempo (O que você já faz)
+        $weatherResponse = Http::get("https://api.openweathermap.org/data/2.5/forecast", [
+            'lat' => $lat,
+            'lon' => $lon,
+            'appid' => $apiKey,
+            'units' => 'metric',
+            'lang' => 'pt_br'
+        ]);
+
+        $weatherData = $weatherResponse->json();
+
+        // 2. SOLUÇÃO: Busca o Estado via Reverse Geocoding
+        // Essa API transforma Lat/Lon em "Recife, Pernambuco, BR"
+        $geoResponse = Http::get("http://api.openweathermap.org/geo/1.0/reverse", [
+            'lat' => $lat,
+            'lon' => $lon,
+            'limit' => 1,
+            'appid' => $apiKey
+        ]);
+
+        // 3. Injeta o estado na resposta
+        if ($geoResponse->successful() && !empty($geoResponse->json())) {
+            $geoData = $geoResponse->json()[0];
+
+            // Adiciona o campo 'state_uf' manualmente no objeto city
+            // A API retorna o nome completo (ex: "Pernambuco"), você pode mapear para UF se quiser
+            // ou mandar o nome completo mesmo.
+            $weatherData['city']['state_uf'] = $geoData['state'] ?? null;
+        }
+
+        return response()->json($weatherData);
+    }
 }
