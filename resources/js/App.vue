@@ -82,52 +82,73 @@
 
       <transition name="fade-slide" appear>
         <div
-          class="w-full bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[420px] flex flex-col justify-center">
-          <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
+          class="w-full bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[420px] flex flex-col justify-center group">
+
+          <div
+            class="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-[100px] transition-all duration-1000 opacity-60"
+            :class="verificarSeEhDia(dadosClima) ? 'bg-blue-400' : 'bg-indigo-600'">
+          </div>
+
           <div class="relative z-10 text-center">
-            <p class="text-blue-400 text-xs font-bold uppercase tracking-widest mb-2 italic">{{
-              dadosClima.weather[0].description }}</p>
-            <div v-if="dadosClima.air_quality" class="mb-4 flex justify-center">
-              <span :class="getAirQualityInfo(dadosClima.air_quality).color"
-                class="px-3 py-1 rounded-full text-[10px] font-black uppercase text-white shadow-lg flex items-center gap-2">
-                {{ getAirQualityInfo(dadosClima.air_quality).emoji }} Ar: {{
-                  getAirQualityInfo(dadosClima.air_quality).text }}
-              </span>
+
+            <div class="flex justify-center mb-4">
+              <div
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
+                <span class="text-xs font-mono tracking-widest text-slate-300">
+                  {{ obterHoraLocal(dadosClima.timezone) }}
+                </span>
+                <span class="text-xs animate-pulse">
+                  {{ verificarSeEhDia(dadosClima) ? '☀️' : '✨' }}
+                </span>
+              </div>
             </div>
 
-            <h2 class="text-5xl font-black mb-6 tracking-tighter">
+            <h2 class="text-5xl font-black mb-2 tracking-tighter drop-shadow-lg">
               {{ nomeExibicao || dadosClima.name }}
-
-              <span class="text-slate-500 italic font-medium block text-xl mt-1">
-                <span v-if="dadosClima.country === 'BR'">
-                  {{ dadosClima.state }}  BR
-                </span>
-
-                <span v-else>
-                  {{ dadosClima.country }}
-                </span>
-              </span>
             </h2>
+            <p class="text-lg md:text-xl italic text-blue-200 font-medium mb-8">
+              <span v-if="dadosClima.city_original && dadosClima.name !== dadosClima.city_original">
+                {{ dadosClima.city_original }} -
+              </span>
 
-            <div class="flex items-center justify-center gap-6 mb-4">
-              <span class="text-8xl font-black tracking-tighter">{{ Math.round(dadosClima.main.temp) }}°</span>
-              <span class="text-6xl drop-shadow-2xl">{{ obterEmojiSimples(dadosClima.main.temp) }}</span>
+              <span v-if="dadosClima.country === 'BR'">{{ dadosClima.state }} - BR</span>
+              <span v-else>{{ dadosClima.country }}</span>
+            </p>
+
+            <div class="flex flex-col items-center justify-center gap-2 mb-6">
+              <span class="text-[7rem] leading-none filter drop-shadow-2xl animate-float">
+                {{ obterIconeVisual(dadosClima.weather[0].icon, verificarSeEhDia(dadosClima)) }}
+              </span>
+
+              <span class="text-8xl font-black tracking-tighter mt-4">
+                {{ Math.round(dadosClima.main.temp) }}°
+              </span>
+
+              <p class="text-blue-300 font-bold uppercase tracking-[0.3em] text-xs mt-2">
+                {{ dadosClima.weather[0].description }}
+              </p>
             </div>
+
             <div
-              class="flex justify-center gap-8 mt-6 pt-6 border-t border-slate-800 text-slate-400 text-xs uppercase font-bold tracking-widest">
-              <span>💧 {{ dadosClima.main.humidity }}%</span>
-              <span>🌬️ {{ Math.round(dadosClima.wind.speed) }} km/h</span>
+              class="flex justify-center gap-8 pt-6 border-t border-white/10 text-slate-400 text-xs uppercase font-bold tracking-widest">
+              <span class="flex items-center gap-2">
+                <span class="text-blue-400">💧</span> {{ dadosClima.main.humidity }}%
+              </span>
+              <span class="flex items-center gap-2">
+                <span class="text-blue-400">🌬️</span> {{ Math.round(dadosClima.wind.speed) }} km/h
+              </span>
             </div>
           </div>
         </div>
       </transition>
 
       <div :class="isDark ? 'border-slate-800 shadow-blue-900/10' : 'border-white shadow-slate-200'"
-        class="w-full h-[420px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 relative z-0 bg-slate-200 transition-all duration-500">
+        class="w-full h-[570px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 relative z-0 bg-slate-200 transition-all duration-500">
+
         <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
           :temp="dadosClima.main.temp" :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id"
-          :temp-min="dadosClima.main.temp_min" :temp-max="dadosClima.main.temp_max" :timezone="dadosClima.timezone"
-          :nearby="dadosClima.nearby" @mapClick="handleMapClick" />
+          :timezone="dadosClima.timezone" :nearby="dadosClima.nearby" :is-dark="isDark"
+          :is-day="verificarSeEhDia(dadosClima)" @mapClick="handleMapClick" />
       </div>
     </div>
 
@@ -167,7 +188,7 @@
             {{ new Date(hora.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }}
           </span>
           <div class="text-3xl mb-3 drop-shadow-md group-hover:scale-110 transition-transform">
-            {{ obterEmojiSimples(hora.main.temp) }}
+            {{ obterIconeVisual(hora.weather[0].icon) }}
           </div>
           <span :class="isDark ? 'text-white' : 'text-slate-700'" class="text-2xl font-black tracking-tighter">{{
             Math.round(hora.main.temp) }}°</span>
@@ -191,7 +212,7 @@
           class="p-8 rounded-[2.5rem] shadow-lg border flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl">
           <span class="text-[10px] font-black text-blue-500 uppercase mb-4">{{ new Date(dia.dt *
             1000).toLocaleDateString('pt-BR', { weekday: 'short' }) }}</span>
-          <span class="text-4xl mb-3">{{ obterEmojiSimples(dia.main.temp) }}</span>
+          <span class="text-4xl mb-3">{{ obterIconeVisual(dia.weather[0].icon) }}</span>
           <span :class="isDark ? 'text-white' : 'text-slate-800'" class="text-2xl font-black">{{
             Math.round(dia.main.temp) }}°</span>
           <span class="text-[9px] text-slate-400 font-bold uppercase mt-3 leading-tight">{{ dia.weather[0].description
@@ -219,6 +240,7 @@ const previsaoHoraria = ref([]);
 const isDark = ref(false);
 const tipoGrafico = ref('line');
 const estadoSelecionado = ref('');
+
 // --- TEMA ---
 const toggleDarkMode = () => {
   isDark.value = !isDark.value;
@@ -239,6 +261,50 @@ onMounted(() => {
   }
 });
 
+// --- NOVIDADE: VERIFICAR SE É DIA (MATEMÁTICA) ---
+const verificarSeEhDia = (dados) => {
+  if (!dados || !dados.sys) return true;
+  const agora = Math.floor(Date.now() / 1000);
+  return agora > dados.sys.sunrise && agora < dados.sys.sunset;
+};
+
+// --- TRADUTOR DE ÍCONES ---
+// --- TRADUTOR DE ÍCONES INTELIGENTE ---
+// Agora aceita um segundo parâmetro opcional: 'forcarDia'
+const obterIconeVisual = (iconCode, forcarDia = null) => {
+  let codigoFinal = iconCode;
+
+  // Se a matemática disser que é DIA, mas o ícone for NOITE ('n'), a gente troca na marra!
+  if (forcarDia === true) {
+    codigoFinal = iconCode.replace('n', 'd');
+  }
+  // Se a matemática disser que é NOITE, mas o ícone for DIA ('d'), troca também.
+  else if (forcarDia === false) {
+    codigoFinal = iconCode.replace('d', 'n');
+  }
+
+  const mapa = {
+    // DIA
+    '01d': '☀️', '02d': '🌤️', '03d': '☁️', '04d': '☁️',
+    '09d': '🌧️', '10d': '🌦️', '11d': '⛈️', '13d': '❄️', '50d': '🌫️',
+    // NOITE
+    '01n': '🌙',
+    '02n': '☁️🌙',
+    '03n': '☁️', '04n': '☁️',
+    '09n': '🌧️', '10n': '🌧️', '11n': '⛈️', '13n': '❄️', '50n': '🌫️'
+  };
+
+  return mapa[codigoFinal] || '🌡️';
+};
+
+// --- HORA LOCAL ---
+const obterHoraLocal = (offsetSegundos) => {
+  const d = new Date();
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const targetTime = new Date(utc + (1000 * offsetSegundos));
+  return targetTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+};
+
 // --- BUSCAS ---
 const buscarSugestoes = async () => {
   if (cidadeInput.value.length < 3) { sugestoes.value = []; return; }
@@ -250,9 +316,16 @@ const buscarSugestoes = async () => {
 
 const selecionarCidade = (c) => {
   nomeExibicao.value = c.name;
-  estadoSelecionado.value = c.state; // <--- GUARDAMOS A UF AQUI!
-  executarBuscaFinal(`${c.name} - ${c.country}`);
+  estadoSelecionado.value = c.state;
+
+  if (c.lat && c.lon) {
+    handleMapClick({ lat: c.lat, lon: c.lon });
+  } else {
+    executarBuscaFinal(`${c.name}, ${c.state || ''}, ${c.country}`);
+  }
+
   sugestoes.value = [];
+  cidadeInput.value = '';
 };
 
 const executarBuscaFinal = async (t) => {
@@ -278,41 +351,74 @@ const handleMapClick = async (coords) => {
   } catch (e) { console.error("Erro mapa"); } finally { carregando.value = false; }
 };
 
+// Substitua a antiga por esta:
 const usarLocalizacao = () => {
-  if (!navigator.geolocation) return alert("Sem GPS");
+  // 1. Verifica se o navegador suporta
+  if (!navigator.geolocation) {
+    alert("Seu navegador não tem suporte a GPS!");
+    return;
+  }
+
   carregando.value = true;
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-  }, () => { carregando.value = false; });
+
+  navigator.geolocation.getCurrentPosition(
+    // SUCESSO
+    (pos) => {
+      console.log("GPS Encontrado:", pos.coords.latitude, pos.coords.longitude);
+      // Chama a mesma função do mapa
+      handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+    },
+    // ERRO
+    (erro) => {
+      carregando.value = false;
+      console.error("Erro GPS:", erro);
+      
+      if (erro.code === 1) {
+        alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
+      } else if (erro.code === 2) {
+        alert("📡 Sinal de GPS indisponível. Verifique se o GPS do seu dispositivo está ligado.");
+      } else if (erro.code === 3) {
+        alert("⏱️ O GPS demorou muito para responder.");
+      } else {
+        alert("Erro desconhecido ao pegar localização.");
+      }
+    },
+    // OPÇÕES (Melhora a precisão)
+    { 
+      enableHighAccuracy: true, // Tenta usar GPS real
+      timeout: 10000,           // Espera no máximo 10s
+      maximumAge: 0             // Não usa cache velho
+    }
+  );
 };
 
 const processarRespostaClima = (d) => {
   const atual = d.list[0];
+  const estadoDetectado = d.city.state_uf || d.city.state || estadoSelecionado.value || '';
 
-  const estadoDetectado = d.city.state_uf || d.city.state || d.city.region || estadoSelecionado.value || '';
-
-  dadosClima.value = { 
-    ...atual, 
-    name: d.city.name, 
-    coord: d.city.coord, 
+  dadosClima.value = {
+    ...atual,
+    name: d.city.name,
+    city_original: d.city.city_original || null,
+    coord: d.city.coord,
     timezone: d.city.timezone,
-    country: d.city.country, 
-    state: estadoDetectado, // <--- Aqui está a correção
+    country: d.city.country,
+    state: estadoDetectado,
+
+    // NOVIDADE: Salvar nascer e pôr do sol para a matemática
+    sys: {
+      sunrise: d.city.sunrise,
+      sunset: d.city.sunset
+    },
+
     air_quality: d.air_quality || null,
-    nearby: d.nearby || [] 
+    nearby: d.nearby || []
   };
-  
-  // Reseta o estado manual para não interferir na próxima busca
+
   estadoSelecionado.value = '';
-  
+
   previsaoHoraria.value = d.list.slice(0, 8);
-  previsaoSemana.value = d.list.filter(item => item.dt_txt.includes("12:00:00"));
-};
-const obterEmojiSimples = (t) => {
-  if (t > 30) return '🔥';
-  if (t > 22) return '☀️';
-  if (t > 15) return '☁️';
-  return '❄️';
+  previsaoSemana.value = d.list.filter(i => i.dt_txt.includes("12:00:00"));
 };
 
 const getAirQualityInfo = (aqi) => {
@@ -344,6 +450,22 @@ const getAirQualityInfo = (aqi) => {
 .fade-slide-enter-from {
   opacity: 0;
   transform: translateY(20px);
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
 .leaflet-container {
