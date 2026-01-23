@@ -107,7 +107,8 @@
         <div class="w-full h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white relative z-0">
           <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
             :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id" :temp="dadosClima.main.temp"
-            :temp-min="dadosClima.main.temp_min" :temp-max="dadosClima.main.temp_max" :timezone="dadosClima.timezone" />
+            :temp-min="dadosClima.main.temp_min" :temp-max="dadosClima.main.temp_max" :timezone="dadosClima.timezone"
+            :nearby="dadosClima.nearby" />
         </div>
       </div>
 
@@ -236,11 +237,10 @@ const usarLocalizacao = () => {
 
   carregando.value = true;
 
-  // Opções para tentar forçar a melhor precisão possível
   const opcoes = {
-    enableHighAccuracy: true, // Tenta usar GPS se disponível ou WiFi mais preciso
-    timeout: 10000,           // Espera até 10s para conseguir um sinal bom
-    maximumAge: 0             // Não usa cache de posição antiga
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
   };
 
   navigator.geolocation.getCurrentPosition(
@@ -253,7 +253,13 @@ const usarLocalizacao = () => {
         });
 
         if (resposta.data && resposta.data.list) {
+          // 1. Limpa o nome "travado" da busca manual anterior
+          nomeExibicao.value = null;
+
+          // 2. Processa os dados novos (que já trazem o nome do bairro correto)
           processarRespostaClima(resposta.data);
+
+          // 3. Limpa o input
           cidadeInput.value = '';
         }
       } catch (erro) {
@@ -268,7 +274,7 @@ const usarLocalizacao = () => {
       carregando.value = false;
       alert("Não foi possível obter sua localização precisa.");
     },
-    opcoes // <--- O SEGREDO ESTÁ AQUI
+    opcoes
   );
 };
 
@@ -290,13 +296,14 @@ const processarRespostaClima = (dados) => {
     name: dados.city.name,
     coord: dados.city.coord,
     state: dados.city.state_uf || '',
-    air_quality: dados.air_quality || null
+    air_quality: dados.air_quality || null,
+
+    // 👇 ADICIONE ESSA LINHA AQUI! 👇
+    nearby: dados.nearby || []
   };
 
-  // NOVO: Pegamos os primeiros 8 itens (8 x 3h = 24 horas)
+  // ... resto do código (previsão horária, semana, etc)
   previsaoHoraria.value = dados.list.slice(0, 8);
-
-  // MANTÉM O ANTIGO: Filtra para mostrar o meio-dia dos próximos dias
   previsaoSemana.value = dados.list.filter(item => item.dt_txt.includes("12:00:00"));
 };
 </script>

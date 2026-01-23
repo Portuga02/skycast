@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\WeatherService;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Response; // Importante
 class WeatherController extends Controller
 {
     protected $weatherService;
@@ -56,20 +57,34 @@ class WeatherController extends Controller
 
         return response()->json(['error' => 'Localização não encontrada'], 404);
     }
-   // Adicione isso no final do seu WeatherController.php
+    // Adicione isso no final do seu WeatherController.php
     public function getMapTile($z, $x, $y)
     {
         $apiKey = config('services.openweather.key');
-        // Adicionei withoutVerifying() para evitar erros de SSL no Windows/Localhost
+
+        // Vamos usar 'precipitation_new' (a mais moderna)
         $url = "https://tile.openweathermap.org/map/precipitation_new/{$z}/{$x}/{$y}.png?appid={$apiKey}";
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->get($url);
-            
-            return response($response->body())
-                ->header('Content-Type', 'image/png');
+            // 1. O TRUQUE: withoutVerifying() ignora erros de SSL locais
+            $response = Http::withoutVerifying()->timeout(3)->get($url);
+
+            // 2. VERIFICAÇÃO RIGOROSA: Só retorna se for realmente uma imagem PNG
+            if ($response->successful() && str_contains($response->header('Content-Type'), 'image/png')) {
+                return response($response->body())
+                    ->header('Content-Type', 'image/png')
+                    ->header('Cache-Control', 'public, max-age=3600');
+            }
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Erro mapa'], 500);
+            // Ignora o erro e cai no retorno transparente abaixo
         }
+
+        // --- PLANO DE SEGURANÇA: PIXEL TRANSPARENTE ---
+        // Se deu erro, ou não é imagem, retorna transparente para o mapa não ficar branco
+        $pixel = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+
+        return response($pixel)
+            ->header('Content-Type', 'image/png')
+            ->header('Cache-Control', 'no-cache, no-store');
     }
 }
