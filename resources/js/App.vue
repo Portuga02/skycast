@@ -480,4 +480,5 @@ const getAirQualityInfo = (aqi) => {
 .leaflet-container {
   z-index: 10 !important;
 }
+
 </style>
