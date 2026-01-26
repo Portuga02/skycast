@@ -142,23 +142,23 @@
         </div>
       </transition>
 
-   <div class="w-full h-[570px] relative z-0 mb-12"> 
-  
-  <MapWidget 
-    v-if="dadosClima && dadosClima.coord" 
-    :lat="dadosClima.coord.lat" 
-    :lon="dadosClima.coord.lon"
-    :temp="dadosClima.main.temp" 
-    :icon-code="dadosClima.weather[0].icon" 
-    :weather-id="dadosClima.weather[0].id"
-    :timezone="dadosClima.timezone" 
-    :nearby="dadosClima.nearby" 
-    :is-dark="isDark"
-    :is-day="verificarSeEhDia(dadosClima)" 
-    @mapClick="handleMapClick" 
-  />
+      <div class="w-full h-[570px] relative z-0 mb-12">
 
-</div>
+     <MapWidget 
+  v-if="dadosClima && dadosClima.coord" 
+  :lat="dadosClima.coord.lat" 
+  :lon="dadosClima.coord.lon"
+  :temp="dadosClima.main.temp" 
+  :icon-code="dadosClima.weather[0].icon" 
+  :weather-id="dadosClima.weather[0].id"
+  :timezone="dadosClima.timezone" 
+  :nearby="dadosClima.nearby" 
+  :is-dark="isDark"
+  :is-day="verificarSeEhDia(dadosClima)" 
+  :uv="dadosClima.uv"   @mapClick="handleMapClick" 
+/>
+
+      </div>
     </div>
 
     <div v-if="dadosClima && previsaoHoraria.length > 0"
@@ -225,7 +225,7 @@
           <span :class="isDark ? 'text-white' : 'text-slate-800'" class="text-2xl font-black">{{
             Math.round(dia.main.temp) }}°</span>
           <span class="text-[9px] text-slate-400 font-bold uppercase mt-3 leading-tight">{{ dia.weather[0].description
-            }}</span>
+          }}</span>
         </div>
       </div>
     </div>
@@ -381,7 +381,7 @@ const usarLocalizacao = () => {
     (erro) => {
       carregando.value = false;
       console.error("Erro GPS:", erro);
-      
+
       if (erro.code === 1) {
         alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
       } else if (erro.code === 2) {
@@ -393,7 +393,7 @@ const usarLocalizacao = () => {
       }
     },
     // OPÇÕES (Melhora a precisão)
-    { 
+    {
       enableHighAccuracy: true, // Tenta usar GPS real
       timeout: 10000,           // Espera no máximo 10s
       maximumAge: 0             // Não usa cache velho
@@ -480,5 +480,4 @@ const getAirQualityInfo = (aqi) => {
 .leaflet-container {
   z-index: 10 !important;
 }
-
 </style>
