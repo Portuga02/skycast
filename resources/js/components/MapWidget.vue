@@ -6,14 +6,31 @@
       <div id="mapContainer" class="w-full h-full outline-none bg-slate-200 dark:bg-slate-900"></div>
     </div>
 
-    <div class="controles-container">
+   <div class="controles-container">
+      
+      <button @click="centralizarMapa"
+        class="w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-lg border-2 group/btn relative bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-400 hover:shadow-blue-400/30 mb-2 md:mb-6 z-50">
+
+        <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Compass/3D/compass_3d.png" 
+             class="w-8 h-8 object-contain filter drop-shadow-sm transition-transform duration-500 group-hover/btn:rotate-[360deg]" 
+             alt="Centralizar">
+
+        <span class="
+          absolute right-full mr-4 px-3 py-1.5 rounded-xl 
+          bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider
+          opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200 
+          pointer-events-none whitespace-nowrap shadow-xl z-50 min-w-max hidden md:block
+        ">
+          Centralizar
+          <span class="absolute top-1/2 -right-1.5 -mt-1 w-2.5 h-2.5 bg-blue-600 rotate-45"></span>
+        </span>
+      </button>
+
       <button v-for="camada in camadasDisponiveis" :key="camada.id" @click="trocarCamada(camada.id)"
         class="w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-lg border-2 group/btn relative"
         :class="[
-          // Se estiver ativo: Borda Azul + Fundo levemente azulado
           camadaAtiva === camada.id 
             ? 'border-blue-500 bg-blue-50 dark:bg-slate-700 shadow-blue-500/30 scale-110 ring-2 ring-blue-400/50' 
-            // Se estiver inativo: Borda suave + Fundo Branco (ou Escuro)
             : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:scale-105 hover:border-blue-300 dark:hover:border-slate-500'
         ]">
 
@@ -254,6 +271,13 @@ onMounted(() => {
   });
   renderMapData();
 });
+// Função para voltar ao ponto original
+const centralizarMapa = () => {
+  if (map) {
+    // flyTo faz uma animação suave até a latitude/longitude original
+    map.flyTo([props.lat, props.lon], 17);
+  }
+};
 
 watch(() => props.isDark, updateTiles);
 watch(() => [props.lat, props.lon, props.isDay, props.uv], ([lat, lon]) => {
