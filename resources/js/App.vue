@@ -23,26 +23,28 @@
       </header>
 
       <div class="w-full max-w-md relative mb-10 z-50">
-        <div class="flex gap-3">
+
+        <div class="flex gap-2 sm:gap-3">
+          <button @click="usarLocalizacao" title="Usar localização atual"
+            class="px-4 py-4 rounded-2xl shadow-xl font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center group border-2 border-transparent"
+            :class="isDark
+              ? 'bg-slate-800 text-blue-400 hover:border-blue-500 shadow-blue-900/20'
+              : 'bg-white text-blue-600 hover:border-blue-200 shadow-slate-200'">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+              stroke="currentColor" class="w-6 h-6 group-hover:animate-bounce">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+            </svg>
+          </button>
+
           <div class="relative flex-1">
             <input v-model="cidadeInput" @input="buscarSugestoes" @keyup.enter="executarBuscaFinal(cidadeInput)"
-              type="text" placeholder="Digite a cidade ou use o GPS..."
-              class="w-full pl-6 pr-16 py-4 rounded-2xl border-none shadow-xl focus:ring-2 focus:ring-blue-500 transition-all truncate"
+              type="text" placeholder="Digite a cidade..."
+              class="w-full pl-6 pr-6 py-4 rounded-2xl border-none shadow-xl focus:ring-2 focus:ring-blue-500 transition-all truncate outline-none"
               :class="isDark
-                ? 'bg-slate-900 text-white placeholder-slate-500'
-                : 'bg-white text-slate-900 placeholder-slate-400'" />
-
-            <button @click="usarLocalizacao" class="absolute right-3 top-1/2 -translate-y-1/2 p-2 transition-colors"
-              :class="isDark
-                ? 'text-slate-500 hover:text-blue-400'
-                : 'text-slate-400 hover:text-blue-600'">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8"
-                stroke="currentColor" class="w-7 h-7">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-              </svg>
-            </button>
+                ? 'bg-slate-900 text-white placeholder-slate-500 shadow-blue-900/20'
+                : 'bg-white text-slate-900 placeholder-slate-400 shadow-slate-200'" />
 
             <ul v-if="sugestoes.length > 0"
               class="absolute z-[101] w-full mt-2 rounded-2xl shadow-2xl overflow-hidden border" :class="isDark
@@ -70,10 +72,14 @@
               </li>
             </ul>
           </div>
+
+
           <button @click="executarBuscaFinal(cidadeInput)" :disabled="carregando"
-            class="px-8 py-4 rounded-2xl shadow-lg font-bold transition-all disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700">
-            {{ carregando ? '...' : 'BUSCAR' }}
+            class="px-6 sm:px-8 py-4 rounded-2xl shadow-xl font-bold transition-all disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-600/40 active:scale-95">
+            <span class="hidden sm:inline">{{ carregando ? '...' : 'BUSCAR' }}</span>
+            <span class="sm:hidden">🔍</span>
           </button>
+
         </div>
       </div>
     </div>
@@ -144,19 +150,10 @@
 
       <div class="w-full h-[570px] relative z-0 mb-12">
 
-     <MapWidget 
-  v-if="dadosClima && dadosClima.coord" 
-  :lat="dadosClima.coord.lat" 
-  :lon="dadosClima.coord.lon"
-  :temp="dadosClima.main.temp" 
-  :icon-code="dadosClima.weather[0].icon" 
-  :weather-id="dadosClima.weather[0].id"
-  :timezone="dadosClima.timezone" 
-  :nearby="dadosClima.nearby" 
-  :is-dark="isDark"
-  :is-day="verificarSeEhDia(dadosClima)" 
-  :uv="dadosClima.uv"   @mapClick="handleMapClick" 
-/>
+        <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
+          :temp="dadosClima.main.temp" :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id"
+          :timezone="dadosClima.timezone" :nearby="dadosClima.nearby" :is-dark="isDark"
+          :is-day="verificarSeEhDia(dadosClima)" :uv="dadosClima.uv" @mapClick="handleMapClick" />
 
       </div>
     </div>
