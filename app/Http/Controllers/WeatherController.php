@@ -20,8 +20,7 @@ class WeatherController extends Controller
     {
         try {
             $decodedCity = urldecode($city);
-            // ATENÇÃO: Se o seu Service não tiver withoutVerifying, pode dar erro aqui também.
-            // Mas vamos focar no GPS agora.
+.
             $data = $this->weatherService->getForecastData($decodedCity);
 
             if ($data) return response()->json($data, 200);
@@ -38,8 +37,6 @@ class WeatherController extends Controller
         return response()->json($cities);
     }
 
-    // --- DETETIVE DE RUA (GPS) ---
-    // --- DETETIVE DE RUA + VIZINHOS ---
     public function climaPorCoordenadas(Request $request)
     {
         $request->validate(['lat' => 'required', 'lon' => 'required']);
@@ -64,8 +61,6 @@ class WeatherController extends Controller
 
             $weatherData = $weatherResponse->json();
 
-            // 2. BUSCA VIZINHOS (A PEÇA QUE FALTAVA!) 🔍
-            // Usamos o endpoint /find para achar cidades num raio próximo
             try {
                 $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
                     'lat' => $lat,
@@ -81,7 +76,7 @@ class WeatherController extends Controller
                     $weatherData['nearby'] = $nearbyResponse->json()['list'];
                 }
             } catch (\Exception $e) {
-                // Se falhar, segue sem vizinhos
+              
             }
 
             // 3. BUSCA O NOME DA RUA (Nominatim)
