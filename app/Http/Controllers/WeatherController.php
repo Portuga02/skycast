@@ -20,7 +20,7 @@ class WeatherController extends Controller
     {
         try {
             $decodedCity = urldecode($city);
-.
+
             $data = $this->weatherService->getForecastData($decodedCity);
 
             if ($data) return response()->json($data, 200);
