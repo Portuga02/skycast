@@ -72,8 +72,6 @@
               </li>
             </ul>
           </div>
-
-
           <button @click="executarBuscaFinal(cidadeInput)" :disabled="carregando"
             class="px-6 sm:px-8 py-4 rounded-2xl shadow-xl font-bold transition-all disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-600/40 active:scale-95">
             <span class="hidden sm:inline">{{ carregando ? '...' : 'BUSCAR' }}</span>

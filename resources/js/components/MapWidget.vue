@@ -6,14 +6,14 @@
       <div id="mapContainer" class="w-full h-full outline-none bg-slate-200 dark:bg-slate-900"></div>
     </div>
 
-   <div class="controles-container">
-      
+    <div class="controles-container">
+
       <button @click="centralizarMapa"
         class="w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-lg border-2 group/btn relative bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-400 hover:shadow-blue-400/30 mb-2 md:mb-6 z-50">
 
-        <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Compass/3D/compass_3d.png" 
-             class="w-8 h-8 object-contain filter drop-shadow-sm transition-transform duration-500 group-hover/btn:rotate-[360deg]" 
-             alt="Centralizar">
+        <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Compass/3D/compass_3d.png"
+          class="w-8 h-8 object-contain filter drop-shadow-sm transition-transform duration-500 group-hover/btn:rotate-[360deg]"
+          alt="Centralizar">
 
         <span class="
           absolute right-full mr-4 px-3 py-1.5 rounded-xl 
@@ -29,12 +29,14 @@
       <button v-for="camada in camadasDisponiveis" :key="camada.id" @click="trocarCamada(camada.id)"
         class="w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-lg border-2 group/btn relative"
         :class="[
-          camadaAtiva === camada.id 
-            ? 'border-blue-500 bg-blue-50 dark:bg-slate-700 shadow-blue-500/30 scale-110 ring-2 ring-blue-400/50' 
+          camadaAtiva === camada.id
+            ? 'border-blue-500 bg-blue-50 dark:bg-slate-700 shadow-blue-500/30 scale-110 ring-2 ring-blue-400/50'
             : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:scale-105 hover:border-blue-300 dark:hover:border-slate-500'
         ]">
 
-        <img :src="camada.img" class="w-8 h-8 object-contain filter drop-shadow-sm transition-transform group-hover/btn:scale-110" alt="Icone">
+        <img :src="camada.img"
+          class="w-8 h-8 object-contain filter drop-shadow-sm transition-transform group-hover/btn:scale-110"
+          alt="Icone">
 
         <span class="
           absolute right-full mr-4 px-3 py-1.5 rounded-xl 
@@ -49,8 +51,8 @@
     </div>
 
     <div class="hidden" style="display: none;">
-       <img src="https://em-content.zobj.net/source/microsoft-teams/337/cloud-with-rain_1f327.png">
-       <img src="https://em-content.zobj.net/source/microsoft-teams/337/snowflake_2744-fe0f.png">
+      <img src="https://em-content.zobj.net/source/microsoft-teams/337/cloud-with-rain_1f327.png">
+      <img src="https://em-content.zobj.net/source/microsoft-teams/337/snowflake_2744-fe0f.png">
     </div>
 
   </div>
@@ -81,10 +83,10 @@ const baseCdn = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/asset
 
 const camadasDisponiveis = [
   { id: null, nome: 'Limpo', img: `${baseCdn}/Cross%20mark/3D/cross_mark_3d.png` },
-  
+
   // AQUI: Voltei com o GUARDA-CHUVA 3D para o botão! ☔
   { id: 'precipitation_new', nome: 'Chuva', img: `${baseCdn}/Umbrella%20with%20rain%20drops/3D/umbrella_with_rain_drops_3d.png` },
-  
+
   { id: 'snow_new', nome: 'Neve', img: `${baseCdn}/Snowflake/3D/snowflake_3d.png` },
   { id: 'clouds_new', nome: 'Nuvens', img: `${baseCdn}/Cloud/3D/cloud_3d.png` },
   { id: 'temp_new', nome: 'Calor', img: `${baseCdn}/Thermometer/3D/thermometer_3d.png` },
@@ -115,7 +117,7 @@ const updateTiles = () => {
 };
 
 const createCustomMarker = (lat, lon, temp, icon, isMain = false) => {
-  
+
   // 1. URL DE SEGURANÇA
   const fallbackIcon = `https://openweathermap.org/img/wn/${icon}@2x.png`;
 
@@ -126,56 +128,55 @@ const createCustomMarker = (lat, lon, temp, icon, isMain = false) => {
   // 3. CONFIGURAÇÃO VISUAL
   // Padrão: Sol
   let iconUrl = `${baseCdn}/Sun/3D/sun_3d.png`;
-  let bgClass = 'bg-gradient-to-b from-blue-100 to-white border-white'; 
+  let bgClass = 'bg-gradient-to-b from-blue-100 to-white border-white';
   let imgFilter = '';
 
   // --- SOL (01d) ☀️ ---
   if (icon === '01d') {
-     iconUrl = `${baseCdn}/Sun/3D/sun_3d.png`;
-     bgClass = 'bg-gradient-to-br from-sky-400 to-sky-200 border-white ring-2 ring-sky-100'; 
+    iconUrl = `${baseCdn}/Sun/3D/sun_3d.png`;
+    bgClass = 'bg-gradient-to-br from-sky-400 to-sky-200 border-white ring-2 ring-sky-100';
   }
   // --- LUA (01n) 🌕 ---
   else if (icon === '01n') {
-     iconUrl = `${baseCdn}/Full%20moon/3D/full_moon_3d.png`;
-     bgClass = 'bg-slate-800 border-slate-600';
+    iconUrl = `${baseCdn}/Full%20moon/3D/full_moon_3d.png`;
+    bgClass = 'bg-slate-800 border-slate-600';
   }
   // --- SOL COM NUVEM (02d) 🌤️ ---
   else if (icon === '02d') {
-     iconUrl = `${baseCdn}/Sun%20behind%20cloud/3D/sun_behind_cloud_3d.png`;
-     bgClass = 'bg-gradient-to-br from-blue-400 to-blue-100';
+    iconUrl = `${baseCdn}/Sun%20behind%20cloud/3D/sun_behind_cloud_3d.png`;
+    bgClass = 'bg-gradient-to-br from-blue-400 to-blue-100';
   }
   // --- NUVENS (03, 04) ☁️ ---
   else if (icon.includes('03') || icon.includes('04') || icon === '02n') {
-     iconUrl = `${baseCdn}/Cloud/3D/cloud_3d.png`;
-     bgClass = 'bg-gradient-to-br from-blue-500 to-blue-300 border-blue-200';
+    iconUrl = `${baseCdn}/Cloud/3D/cloud_3d.png`;
+    bgClass = 'bg-gradient-to-br from-blue-500 to-blue-300 border-blue-200';
   }
   // --- CHUVA (09, 10) 🌧️ ---
   else if (icon.includes('09') || icon.includes('10')) {
-     // AQUI: Nuvem com Chuva para o MAPA
-     iconUrl = `${baseCdn}/Cloud%20with%20rain/3D/cloud_with_rain_3d.png`; 
-     
-     if (icon === '10d') iconUrl = `${baseCdn}/Sun%20behind%20rain%20cloud/3D/sun_behind_rain_cloud_3d.png`;
-     
-     bgClass = 'bg-gradient-to-br from-blue-600 to-blue-500 border-blue-400';
+    // AQUI: Nuvem com Chuva para o MAPA
+    iconUrl = `${baseCdn}/Cloud%20with%20rain/3D/cloud_with_rain_3d.png`;
+
+    if (icon === '10d') iconUrl = `${baseCdn}/Sun%20behind%20rain%20cloud/3D/sun_behind_rain_cloud_3d.png`;
+
+    bgClass = 'bg-gradient-to-br from-blue-600 to-blue-500 border-blue-400';
   }
   // --- RAIO (11) ⛈️ ---
   else if (icon.includes('11')) {
-     iconUrl = `${baseCdn}/Cloud%20with%20lightning/3D/cloud_with_lightning_3d.png`;
-     bgClass = 'bg-slate-700 border-yellow-400';
+    iconUrl = `${baseCdn}/Cloud%20with%20lightning/3D/cloud_with_lightning_3d.png`;
+    bgClass = 'bg-slate-700 border-yellow-400';
   }
   // --- NEVE (13) ❄️ ---
   else if (icon.includes('13')) {
-     iconUrl = `${baseCdn}/Snowflake/3D/snowflake_3d.png`;
-     bgClass = 'bg-blue-500 border-white ring-2 ring-blue-300';
-     imgFilter = 'brightness-0 invert'; // Branco Puro
+    iconUrl = `${baseCdn}/Snowflake/3D/snowflake_3d.png`;
+    bgClass = 'bg-blue-500 border-white ring-2 ring-blue-300';
+    imgFilter = 'brightness-0 invert'; // Branco Puro
   }
   // --- NEBLINA (50) 🌫️ ---
   else if (icon.includes('50')) {
-     iconUrl = `${baseCdn}/Fog/3D/fog_3d.png`;
-     bgClass = 'bg-gray-400 border-gray-300';
+    iconUrl = `${baseCdn}/Fog/3D/fog_3d.png`;
+    bgClass = 'bg-gray-400 border-gray-300';
   }
 
-  // 4. REAÇÃO (Rostinhos - Mantido CDN Rápido)
   let badgeUrl = '';
   let badgeClass = '';
   const timeStamp = new Date().getTime(); // Cache Buster
@@ -196,7 +197,6 @@ const createCustomMarker = (lat, lon, temp, icon, isMain = false) => {
       <img src="${badgeUrl}" onerror="this.style.display='none'" class="w-6 h-6 object-contain filter drop-shadow-sm">
     </div>`;
 
-  // 5. HTML FINAL
   const html = `
     <div class="relative flex flex-col items-center justify-center transition-transform hover:scale-110 cursor-pointer group">
       <div class="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center border-[3px] relative z-20 overflow-visible 
@@ -219,7 +219,7 @@ const createCustomMarker = (lat, lon, temp, icon, isMain = false) => {
   const iconObj = L.divIcon({
     className: 'custom-pin-container',
     html: html,
-    iconSize: [64, 100], 
+    iconSize: [64, 100],
     iconAnchor: [32, 60],
     popupAnchor: [0, -65]
   });
@@ -233,7 +233,6 @@ const createCustomMarker = (lat, lon, temp, icon, isMain = false) => {
     emit('mapClick', { lat, lon });
   });
 
-  // Popup com UV
   let uvBadge = '';
   if (isMain && props.uv !== undefined) {
     let uvColor = 'bg-green-500';
@@ -271,10 +270,10 @@ onMounted(() => {
   });
   renderMapData();
 });
-// Função para voltar ao ponto original
+
 const centralizarMapa = () => {
   if (map) {
-    // flyTo faz uma animação suave até a latitude/longitude original
+
     map.flyTo([props.lat, props.lon], 17);
   }
 };
@@ -289,11 +288,16 @@ watch(() => [props.lat, props.lon, props.isDay, props.uv], ([lat, lon]) => {
 </script>
 
 <style>
-/* --- ANIMAÇÃO DO SOL (Opcional, mas recomendado) --- */
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 .animate-spin-slow {
   animation: spin-slow 12s linear infinite;
 }
@@ -302,28 +306,29 @@ watch(() => [props.lat, props.lon, props.isDay, props.uv], ([lat, lon]) => {
   background: transparent;
   z-index: 1;
 }
+
 .leaflet-div-icon {
   background: transparent;
   border: none;
 }
+
 .leaflet-container:focus {
   outline: none;
 }
 
-/* --- ESTILO DOS BOTÕES --- */
 .controles-container {
-  /* MOBILE */
+
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 8px; /* Diminui um pouco o gap para caber os botões novos no mobile */
+  gap: 8px;
   width: 100%;
   padding-bottom: 5px;
-  flex-wrap: wrap; /* Permite quebrar linha se não couber no celular */
+  flex-wrap: wrap;
+
 }
 
-/* PC */
 @media (min-width: 768px) {
   .controles-container {
     flex-direction: column;
