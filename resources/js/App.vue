@@ -121,7 +121,8 @@
 
             <div class="flex flex-col items-center justify-center gap-2 mb-6">
               <span class="text-[7rem] leading-none filter drop-shadow-2xl animate-float">
-                {{ obterIconeVisual(dadosClima.weather[0].icon, verificarSeEhDia(dadosClima)) }}
+                {{ obterIconeVisual(dadosClima.weather[0].icon, verificarSeEhDia(dadosClima), dadosClima.weather[0].id)
+                }}
               </span>
 
               <span class="text-8xl font-black tracking-tighter mt-4">
@@ -192,7 +193,7 @@
             {{ new Date(hora.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }}
           </span>
           <div class="text-3xl mb-3 drop-shadow-md group-hover:scale-110 transition-transform">
-            {{ obterIconeVisual(hora.weather[0].icon) }}
+            {{ obterIconeVisual(hora.weather[0].icon, null, hora.weather[0].id) }}
           </div>
           <span :class="isDark ? 'text-white' : 'text-slate-700'" class="text-2xl font-black tracking-tighter">{{
             Math.round(hora.main.temp) }}°</span>
@@ -216,11 +217,11 @@
           class="p-8 rounded-[2.5rem] shadow-lg border flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl">
           <span class="text-[10px] font-black text-blue-500 uppercase mb-4">{{ new Date(dia.dt *
             1000).toLocaleDateString('pt-BR', { weekday: 'short' }) }}</span>
-          <span class="text-4xl mb-3">{{ obterIconeVisual(dia.weather[0].icon) }}</span>
+          <span class="text-4xl mb-3">{{ obterIconeVisual(dia.weather[0].icon, null, dia.weather[0].id) }}</span>
           <span :class="isDark ? 'text-white' : 'text-slate-800'" class="text-2xl font-black">{{
             Math.round(dia.main.temp) }}°</span>
           <span class="text-[9px] text-slate-400 font-bold uppercase mt-3 leading-tight">{{ dia.weather[0].description
-          }}</span>
+            }}</span>
         </div>
       </div>
     </div>
@@ -265,43 +266,37 @@ onMounted(() => {
   }
 });
 
-// --- NOVIDADE: VERIFICAR SE É DIA (MATEMÁTICA) ---
 const verificarSeEhDia = (dados) => {
   if (!dados || !dados.sys) return true;
   const agora = Math.floor(Date.now() / 1000);
   return agora > dados.sys.sunrise && agora < dados.sys.sunset;
 };
 
-// --- TRADUTOR DE ÍCONES ---
 // --- TRADUTOR DE ÍCONES INTELIGENTE ---
-// Agora aceita um segundo parâmetro opcional: 'forcarDia'
-const obterIconeVisual = (iconCode, forcarDia = null) => {
+const obterIconeVisual = (iconCode, forcarDia = null, weatherId = null) => {
   let codigoFinal = iconCode;
 
-  // Se a matemática disser que é DIA, mas o ícone for NOITE ('n'), a gente troca na marra!
-  if (forcarDia === true) {
-    codigoFinal = iconCode.replace('n', 'd');
-  }
-  // Se a matemática disser que é NOITE, mas o ícone for DIA ('d'), troca também.
-  else if (forcarDia === false) {
-    codigoFinal = iconCode.replace('d', 'n');
+  if (forcarDia === true) codigoFinal = iconCode.replace('n', 'd');
+  else if (forcarDia === false) codigoFinal = iconCode.replace('d', 'n');
+
+  // Lógica de Intensidade baseada no ID
+  if (weatherId) {
+    if (weatherId >= 200 && weatherId <= 299) return '⛈️⚡';
+    if ([502, 503, 504, 522].includes(weatherId)) return '🌧️🌊';
+    if (weatherId === 501 || weatherId === 521) return '🌧️';
+    if ((weatherId >= 300 && weatherId <= 399) || weatherId === 500) return '🌦️';
   }
 
   const mapa = {
-    // DIA
     '01d': '☀️', '02d': '🌤️', '03d': '☁️', '04d': '☁️',
     '09d': '🌧️', '10d': '🌦️', '11d': '⛈️', '13d': '❄️', '50d': '🌫️',
-    // NOITE
-    '01n': '🌙',
-    '02n': '☁️🌙',
-    '03n': '☁️', '04n': '☁️',
+    '01n': '🌙', '02n': '☁️🌙', '03n': '☁️', '04n': '☁️',
     '09n': '🌧️', '10n': '🌧️', '11n': '⛈️', '13n': '❄️', '50n': '🌫️'
   };
 
   return mapa[codigoFinal] || '🌡️';
 };
 
-// --- HORA LOCAL ---
 const obterHoraLocal = (offsetSegundos) => {
   const d = new Date();
   const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
@@ -309,7 +304,6 @@ const obterHoraLocal = (offsetSegundos) => {
   return targetTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 };
 
-// --- BUSCAS ---
 const buscarSugestoes = async () => {
   if (cidadeInput.value.length < 3) { sugestoes.value = []; return; }
   try {
@@ -355,9 +349,7 @@ const handleMapClick = async (coords) => {
   } catch (e) { console.error("Erro mapa"); } finally { carregando.value = false; }
 };
 
-// Substitua a antiga por esta:
 const usarLocalizacao = () => {
-  // 1. Verifica se o navegador suporta
   if (!navigator.geolocation) {
     alert("Seu navegador não tem suporte a GPS!");
     return;
@@ -366,17 +358,13 @@ const usarLocalizacao = () => {
   carregando.value = true;
 
   navigator.geolocation.getCurrentPosition(
-    // SUCESSO
     (pos) => {
       console.log("GPS Encontrado:", pos.coords.latitude, pos.coords.longitude);
-      // Chama a mesma função do mapa
       handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude });
     },
-    // ERRO
     (erro) => {
       carregando.value = false;
       console.error("Erro GPS:", erro);
-
       if (erro.code === 1) {
         alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
       } else if (erro.code === 2) {
@@ -387,12 +375,7 @@ const usarLocalizacao = () => {
         alert("Erro desconhecido ao pegar localização.");
       }
     },
-    // OPÇÕES (Melhora a precisão)
-    {
-      enableHighAccuracy: true, // Tenta usar GPS real
-      timeout: 10000,           // Espera no máximo 10s
-      maximumAge: 0             // Não usa cache velho
-    }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 };
 
@@ -408,13 +391,7 @@ const processarRespostaClima = (d) => {
     timezone: d.city.timezone,
     country: d.city.country,
     state: estadoDetectado,
-
-    // NOVIDADE: Salvar nascer e pôr do sol para a matemática
-    sys: {
-      sunrise: d.city.sunrise,
-      sunset: d.city.sunset
-    },
-
+    sys: { sunrise: d.city.sunrise, sunset: d.city.sunset },
     air_quality: d.air_quality || null,
     nearby: d.nearby || []
   };
@@ -423,17 +400,6 @@ const processarRespostaClima = (d) => {
 
   previsaoHoraria.value = d.list.slice(0, 8);
   previsaoSemana.value = d.list.filter(i => i.dt_txt.includes("12:00:00"));
-};
-
-const getAirQualityInfo = (aqi) => {
-  const infos = {
-    1: { text: 'Excelente', color: 'bg-green-500', emoji: '🍃' },
-    2: { text: 'Boa', color: 'bg-lime-500', emoji: '😊' },
-    3: { text: 'Moderada', color: 'bg-yellow-500', emoji: '😐' },
-    4: { text: 'Ruim', color: 'bg-orange-500', emoji: '😷' },
-    5: { text: 'Péssima', color: 'bg-red-600', emoji: '☠️' }
-  };
-  return infos[aqi] || { text: 'N/A', color: 'bg-slate-500', emoji: '❓' };
 };
 </script>
 

@@ -29,7 +29,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const props = defineProps(['horas', 'isDark', 'timezone', 'tipo']);
 
 const chartData = computed(() => {
-  // Guardião contra o erro de "Invalid Date"
   if (!props.horas || props.horas.length === 0 || props.timezone === undefined) {
     return { labels: [], datasets: [] };
   }
@@ -56,7 +55,6 @@ const chartData = computed(() => {
       data: temps,
       fill: true,
       borderColor: props.isDark ? '#60a5fa' : '#2563eb',
-      // No gráfico de barras, usamos uma cor mais sólida
       backgroundColor: (context) => {
         const { ctx, chartArea } = context.chart;
         if (!chartArea) return null;
@@ -68,7 +66,7 @@ const chartData = computed(() => {
       tension: 0.45,
       pointRadius: props.tipo === 'line' ? 5 : 0,
       borderWidth: props.tipo === 'line' ? 4 : 0,
-      borderRadius: 8, // Arredondado para o gráfico de barras
+      borderRadius: 8,
     }]
   };
 });
