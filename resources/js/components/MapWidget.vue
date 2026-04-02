@@ -111,8 +111,6 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
     iconUrl = icons3D.sun;
     bgClass = 'bg-gradient-to-br from-sky-400 to-sky-100 border-white';
   }
-
-  // --- 1. O ROSTINHO DE TEMPERATURA (Animado) ---
   let facePath = 'Smiling%20Face%20with%20Sunglasses.png'; 
   let faceClass = 'border-green-300';
   const timeStamp = new Date().getTime(); // Cache Buster
