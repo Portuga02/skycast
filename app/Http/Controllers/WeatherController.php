@@ -76,7 +76,6 @@ class WeatherController extends Controller
                     $weatherData['nearby'] = $nearbyResponse->json()['list'];
                 }
             } catch (\Exception $e) {
-              
             }
 
             // 3. BUSCA O NOME DA RUA (Nominatim)
@@ -136,5 +135,27 @@ class WeatherController extends Controller
 
         $pixel = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
         return response($pixel)->header('Content-Type', 'image/png');
+    }
+    public function getByCoordinates(Request $request)
+    {
+        $lat = $request->lat;
+        $lon = $request->lon;
+        $apiKey = env('OPENWEATHER_API_KEY');
+
+        // 1. Busca a cidade principal clicada
+        $responsePrincipal = Http::get("https://api.openweathermap.org/data/2.5/weather?lat={$lat}&lon={$lon}&appid={$apiKey}&units=metric");
+
+        // 2. Busca as cidades vizinhas (opcional, dependendo de como você fez a lógica do 'nearby')
+        // ... sua lógica de cidades ao redor aqui ...
+
+        // 3. Retorna pro Vue
+        return response()->json([
+            'lat' => $responsePrincipal['coord']['lat'],
+            'lon' => $responsePrincipal['coord']['lon'],
+            'temp' => $responsePrincipal['main']['temp'],
+            'iconCode' => $responsePrincipal['weather'][0]['icon'],
+            'weatherId' => $responsePrincipal['weather'][0]['id'],
+            // 'nearby' => $arrayDeVizinhos
+        ]);
     }
 }

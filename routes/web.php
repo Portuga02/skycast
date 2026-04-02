@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\WeatherController;
 use App\Services\WeatherService;
 use Illuminate\Support\Facades\Route;
 
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::post('/clima/buscar-coordenadas', [WeatherController::class, 'getByCoordinates']);
 Route::get('/clima/{city}', function (string $city, WeatherService $service) {
     $dados = $service->getWeather($city);
     
