@@ -1,7 +1,33 @@
 <template>
+
   <div :class="isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'"
     class="min-h-screen flex flex-col items-center font-sans pb-20 transition-colors duration-500 overflow-x-hidden">
-
+<transition name="fade-slide">
+      <div v-if="mostrarPopup" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
+        <div :class="isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-900'"
+             class="p-8 rounded-[2.5rem] shadow-2xl border max-w-sm text-center relative overflow-hidden transition-colors duration-500">
+          
+          <div class="text-6xl mb-4 animate-float">🌦️</div>
+          
+          <h2 class="text-2xl font-black tracking-tighter mb-2">Alertas de Clima</h2>
+          <p :class="isDark ? 'text-slate-400' : 'text-slate-500'" class="mb-8 font-medium text-sm">
+            Quer ser avisado automaticamente quando uma chuva forte estiver se aproximando?
+          </p>
+          
+          <div class="flex flex-col gap-3">
+            <button @click="aceitarNotificacoes" 
+                    class="w-full bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold shadow-xl hover:bg-blue-700 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">
+              SIM, ME AVISE! 🔔
+            </button>
+            <button @click="fecharPopup" 
+                    :class="isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-800'" 
+                    class="w-full px-6 py-3 font-bold transition-colors text-xs uppercase tracking-widest">
+              Agora Não
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
     <button @click="toggleDarkMode"
       class="fixed bottom-6 right-6 z-[2000] p-4 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 border group"
       :class="isDark ? 'bg-yellow-400 border-yellow-500' : 'bg-slate-900 border-slate-700'">
@@ -80,7 +106,7 @@
 
         </div>
       </div>
-    </div>
+  </div>
 
     <div v-if="dadosClima" class="w-full max-w-6xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start z-0 mb-8">
 
@@ -221,7 +247,7 @@
           <span :class="isDark ? 'text-white' : 'text-slate-800'" class="text-2xl font-black">{{
             Math.round(dia.main.temp) }}°</span>
           <span class="text-[9px] text-slate-400 font-bold uppercase mt-3 leading-tight">{{ dia.weather[0].description
-            }}</span>
+          }}</span>
         </div>
       </div>
     </div>
@@ -257,15 +283,71 @@ const toggleDarkMode = () => {
     localStorage.setItem('theme', 'light');
   }
 };
-
+const mostrarPopup = ref(false);
 onMounted(() => {
   const saved = localStorage.getItem('theme');
   if (saved === 'dark') {
     isDark.value = true;
     document.documentElement.classList.add('dark');
   }
-});
 
+  // Lógica de disparo do Popup de Notificação
+  if ('Notification' in window && Notification.permission === 'default' && localStorage.getItem('notificacoes_recusadas') !== 'true') {
+    setTimeout(() => {
+      mostrarPopup.value = true;
+    }, 3000); 
+  }
+  const userId = 1; // <-- Substitua pela sua variável real de usuário logado
+  
+  // Verifica se o Echo foi instanciado (normalmente no seu bootstrap.js)
+  if (window.Echo) {
+    window.Echo.private(`App.Models.User.${userId}`)
+      .notification((notification) => {
+        console.log("Alerta de Clima Recebido!", notification);
+
+        // 1. Dispara a notificação "Estilo WhatsApp" no SO do usuário!
+        if (Notification.permission === 'granted') {
+          new Notification('Alerta SkyCast PRO ⛈️', {
+            body: notification.mensagem || 'Atenção: Mudança brusca de clima detectada na sua região!',
+            icon: '/images/weather/11d.png', 
+            vibrate: [200, 100, 200] 
+          });
+        }
+        if (dadosClima.value && dadosClima.value.coord) {
+           handleMapClick({ 
+             lat: dadosClima.value.coord.lat, 
+             lon: dadosClima.value.coord.lon 
+           });
+        }
+      });
+  }
+});
+const fecharPopup = () => {
+  mostrarPopup.value = false;
+  // Salva no navegador para não perturbar o usuário nos próximos acessos
+  localStorage.setItem('notificacoes_recusadas', 'true'); 
+};
+
+const aceitarNotificacoes = async () => {
+  mostrarPopup.value = false;
+  
+  // Dispara a caixa nativa do navegador (agora autorizada pelo clique prévio)
+  const permissao = await Notification.requestPermission();
+  
+  if (permissao === 'granted') {
+    try {
+      const registro = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registrado com sucesso:', registro);
+      // Aqui, futuramente, faremos o disparo do Axios para o backend do Laravel com o Token!
+      alert('Tudo certo! Você receberá os alertas do SkyCast PRO.');
+    } catch (erro) {
+      console.error('Falha ao registrar o Service Worker:', erro);
+    }
+  } else {
+    // Se ele bloqueou na caixa nativa, a gente também salva para não perguntar mais
+    localStorage.setItem('notificacoes_recusadas', 'true');
+  }
+};
 const verificarSeEhDia = (dados) => {
   if (!dados || !dados.sys) return true;
   const agora = Math.floor(Date.now() / 1000);
