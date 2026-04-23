@@ -4,44 +4,71 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
-use League\Uri\Http;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CheckWeatherAlerts extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
+     * O nome e a assinatura do comando (o que você digita no terminal).
      */
     protected $signature = 'app:check-weather-alerts';
 
     /**
-     * The console command description.
-     *
-     * @var string
+     * A descrição do que esse robô faz.
      */
-    protected $description = 'Command description';
+    protected $description = 'Monitora o clima via OpenWeather e dispara notificações em tempo real via Broadcast';
 
     /**
-     * Execute the console command.
+     * Executa a lógica do comando.
      */
-    // app/Console/Commands/CheckWeatherAlerts.php
-
-public function handle()
+   public function handle()
 {
-    // 1. Busca no banco todos os usuários que ativaram notificações e suas cidades
-    $users = User::where('wants_alerts', true)->get();
+    $users = User::all();
+    $apiKey = env('OPENWEATHER_API_KEY');
 
     foreach ($users as $user) {
-        // 2. Bate na API da OpenWeather para a cidade do usuário
-        $weather = Http::get("https://api.openweathermap.org/data/2.5/weather?lat={$user->lat}&lon={$user->lon}...");
-        
-        $weatherId = $weather['weather'][0]['id'];
+        $response = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/weather", [
+            'lat' => $user->lat ?? -8.0476,
+            'lon' => $user->lon ?? -34.8770,
+            'appid' => $apiKey,
+            'units' => 'metric',
+            'lang' => 'pt_br'
+        ]);
 
-        // 3. Verifica se a previsão mudou drasticamente (Ex: ID na casa dos 200, 300 ou 500)
-        if ($weatherId >= 200 && $weatherId <= 599) {
-            // 4. Dispara a notificação pro usuário!
-            $user->notify(new \App\Notifications\RainAlertNotification($weather));
+        if ($response->successful()) {
+            $current = $response->json();
+            $cacheKey = "weather_old_user_" . $user->id;
+            
+            // 1. Pega o clima anterior da "memória" (Cache)
+            $old = cache($cacheKey);
+
+            if ($old) {
+                $mudancas = [];
+                
+                // Comparação de Temperatura
+                $diffTemp = $current['main']['temp'] - $old['main']['temp'];
+                if (abs($diffTemp) >= 1) { // Só avisa se mudar mais de 1 grau
+                    $mudancas[] = $diffTemp > 0 ? "esquentou " . round($diffTemp) . "°C" : "esfriou " . round(abs($diffTemp)) . "°C";
+                }
+
+                // Comparação de Condição (Sol -> Chuva)
+                if ($current['weather'][0]['main'] !== $old['weather'][0]['main']) {
+                    $mudancas[] = "mudou de " . $old['weather'][0]['description'] . " para " . $current['weather'][0]['description'];
+                }
+
+                // 2. Se algo mudou, gera a mensagem personalizada
+                if (!empty($mudancas)) {
+                    $textoAlerta = "O clima mudou! Agora está " . implode(" e ", $mudancas) . ".";
+                    
+                    // Dispara a notificação com o texto da mudança
+                    $user->notify(new \App\Notifications\RainAlertNotification($current, $textoAlerta));
+                    $this->info("Mudança detectada para {$user->name}: {$textoAlerta}");
+                }
+            }
+
+            // 3. Guarda o clima atual no Cache para a próxima comparação (expira em 2 horas)
+            cache([$cacheKey => $current], now()->addHours(2));
         }
     }
 }

@@ -123,3 +123,40 @@ cd skycast-pro
     Sávio Gomes da Silva Engenheiro de Software Fullstack | Especialista em Laravel & Vue.js
 
     Projeto desenvolvido para fins de demonstração de arquitetura de software.
+
+
+
+    🚀 Novas Funcionalidades (Recentes)
+        Sistema de Monitoramento Climático Automático: Implementação de um comando Console (Custom Artisan Command) que atua como um "vigia", consultando a API OpenWeather periodicamente.
+
+        Alertas de Clima em Tempo Real: Sistema de notificações via Broadcast, preparado para disparar popups instantâneos para o usuário quando são detectadas mudanças críticas (chuva, tempestade, calor extremo ou baixa umidade).
+
+        Geolocalização Dinâmica por Usuário: O sistema agora identifica as coordenadas (lat e lon) de cada usuário cadastrado no banco de dados para entregar previsões personalizadas.
+
+        Integração com Laravel Reverb: Configuração da infraestrutura de WebSockets moderna do Laravel 11 para comunicação de baixa latência entre o servidor e o cliente.
+
+        Persistência de Notificações: Além do tempo real, os alertas são salvos no banco de dados (database notifications), permitindo a criação de um histórico de mensagens para o usuário.
+
+        Layout Adaptativo e Simétrico: Ajuste fino de interface utilizando Tailwind CSS para garantir que o painel de informações e o mapa interativo mantenham proporções idênticas (items-stretch), proporcionando um design profissional e equilibrado.
+
+        🛠️ Stack Técnica Adicionada
+        Backend: Laravel 11 (Artisan Commands, Task Scheduling).
+
+        Comunicação em Tempo Real: Laravel Reverb / Socket.io (Broadcasting).
+
+        Notificações: Laravel Notifications (Drivers: Database e Broadcast).
+
+        Consumo de API: Laravel HTTP Client (Guzzle wrapper) com tratamento de erros e logs.
+
+        Banco de Dados: Migrations para tabelas de usuários e notificações do sistema.
+
+        📋 Requisitos de Execução (Local)
+        Para rodar o ecossistema completo agora, é necessário:
+
+        php artisan app:check-weather-alerts (Para disparar o monitoramento).
+
+        php artisan schedule:work (Para manter o agendador ativo).
+
+        php artisan queue:work (Para processar o envio das notificações).
+
+        php artisan reverb:start (Para manter o servidor de WebSockets ativo).

@@ -1,30 +1,46 @@
 <template>
-
   <div :class="isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'"
     class="min-h-screen flex flex-col items-center font-sans pb-20 transition-colors duration-500 overflow-x-hidden">
-<transition name="fade-slide">
-      <div v-if="mostrarPopup" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
+    <transition name="fade-slide">
+      <div v-if="mostrarPopup"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
         <div :class="isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-900'"
-             class="p-8 rounded-[2.5rem] shadow-2xl border max-w-sm text-center relative overflow-hidden transition-colors duration-500">
-          
+          class="p-8 rounded-[2.5rem] shadow-2xl border max-w-sm text-center relative overflow-hidden transition-colors duration-500">
           <div class="text-6xl mb-4 animate-float">🌦️</div>
-          
           <h2 class="text-2xl font-black tracking-tighter mb-2">Alertas de Clima</h2>
           <p :class="isDark ? 'text-slate-400' : 'text-slate-500'" class="mb-8 font-medium text-sm">
             Quer ser avisado automaticamente quando uma chuva forte estiver se aproximando?
           </p>
-          
           <div class="flex flex-col gap-3">
-            <button @click="aceitarNotificacoes" 
-                    class="w-full bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold shadow-xl hover:bg-blue-700 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">
+            <button @click="aceitarNotificacoes"
+              class="w-full bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold shadow-xl hover:bg-blue-700 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">
               SIM, ME AVISE! 🔔
             </button>
-            <button @click="fecharPopup" 
-                    :class="isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-800'" 
-                    class="w-full px-6 py-3 font-bold transition-colors text-xs uppercase tracking-widest">
+            <button @click="fecharPopup"
+              :class="isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-800'"
+              class="w-full px-6 py-3 font-bold transition-colors text-xs uppercase tracking-widest">
               Agora Não
             </button>
           </div>
+        </div>
+      </div>
+    </transition>
+    <transition name="fade">
+      <div v-if="mostrarAlertaClima"
+        class="fixed top-5 right-5 z-[100] w-80 bg-white dark:bg-slate-800 shadow-2xl rounded-2xl p-4 border-l-4 border-blue-500">
+        <div class="flex items-start gap-3">
+          <div class="bg-blue-100 p-2 rounded-full">
+            <i class="fas fa-cloud-sun text-blue-600"></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-bold text-slate-900 dark:text-white">Atualização do Céu</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">
+              {{ mensagemAlerta }}
+            </p>
+          </div>
+          <button @click="mostrarAlertaClima = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
     </transition>
@@ -49,13 +65,10 @@
       </header>
 
       <div class="w-full max-w-md relative mb-10 z-50">
-
         <div class="flex gap-2 sm:gap-3">
           <button @click="usarLocalizacao" title="Usar localização atual"
             class="px-4 py-4 rounded-2xl shadow-xl font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center group border-2 border-transparent"
-            :class="isDark
-              ? 'bg-slate-800 text-blue-400 hover:border-blue-500 shadow-blue-900/20'
-              : 'bg-white text-blue-600 hover:border-blue-200 shadow-slate-200'">
+            :class="isDark ? 'bg-slate-800 text-blue-400 hover:border-blue-500 shadow-blue-900/20' : 'bg-white text-blue-600 hover:border-blue-200 shadow-slate-200'">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
               stroke="currentColor" class="w-6 h-6 group-hover:animate-bounce">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -68,19 +81,14 @@
             <input v-model="cidadeInput" @input="buscarSugestoes" @keyup.enter="executarBuscaFinal(cidadeInput)"
               type="text" placeholder="Digite a cidade..."
               class="w-full pl-6 pr-6 py-4 rounded-2xl border-none shadow-xl focus:ring-2 focus:ring-blue-500 transition-all truncate outline-none"
-              :class="isDark
-                ? 'bg-slate-900 text-white placeholder-slate-500 shadow-blue-900/20'
-                : 'bg-white text-slate-900 placeholder-slate-400 shadow-slate-200'" />
+              :class="isDark ? 'bg-slate-900 text-white placeholder-slate-500 shadow-blue-900/20' : 'bg-white text-slate-900 placeholder-slate-400 shadow-slate-200'" />
 
             <ul v-if="sugestoes.length > 0"
-              class="absolute z-[101] w-full mt-2 rounded-2xl shadow-2xl overflow-hidden border" :class="isDark
-                ? 'bg-slate-900 text-white border-slate-800'
-                : 'bg-white text-slate-900 border-slate-200'">
+              class="absolute z-[101] w-full mt-2 rounded-2xl shadow-2xl overflow-hidden border"
+              :class="isDark ? 'bg-slate-900 text-white border-slate-800' : 'bg-white text-slate-900 border-slate-200'">
               <li v-for="(cidade, index) in sugestoes" :key="index" @mousedown.prevent="selecionarCidade(cidade)"
                 class="px-6 py-4 cursor-pointer flex justify-between items-center transition-colors border-b last:border-none"
-                :class="isDark
-                  ? 'hover:bg-slate-800 border-slate-800'
-                  : 'hover:bg-slate-50 border-slate-100'">
+                :class="isDark ? 'hover:bg-slate-800 border-slate-800' : 'hover:bg-slate-50 border-slate-100'">
                 <div class="flex flex-col text-left">
                   <span class="font-bold" :class="isDark ? 'text-slate-100' : 'text-slate-800'">
                     {{ cidade.name }}
@@ -90,9 +98,8 @@
                     {{ cidade.country }}
                   </span>
                 </div>
-                <span class="text-[10px] font-black px-2 py-1 rounded" :class="isDark
-                  ? 'bg-blue-900/50 text-blue-300'
-                  : 'bg-blue-100 text-blue-700'">
+                <span class="text-[10px] font-black px-2 py-1 rounded"
+                  :class="isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700'">
                   {{ cidade.state || 'UF' }}
                 </span>
               </li>
@@ -103,24 +110,18 @@
             <span class="hidden sm:inline">{{ carregando ? '...' : 'BUSCAR' }}</span>
             <span class="sm:hidden">🔍</span>
           </button>
-
         </div>
       </div>
-  </div>
+    </div>
 
     <div v-if="dadosClima" class="w-full max-w-6xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start z-0 mb-8">
-
       <transition name="fade-slide" appear>
         <div
           class="w-full bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[420px] flex flex-col justify-center group">
-
           <div
             class="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-[100px] transition-all duration-1000 opacity-60"
-            :class="verificarSeEhDia(dadosClima) ? 'bg-blue-400' : 'bg-indigo-600'">
-          </div>
-
+            :class="verificarSeEhDia(dadosClima) ? 'bg-blue-400' : 'bg-indigo-600'"></div>
           <div class="relative z-10 text-center">
-
             <div class="flex justify-center mb-4">
               <div
                 class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
@@ -132,7 +133,6 @@
                 </span>
               </div>
             </div>
-
             <h2 class="text-5xl font-black mb-2 tracking-tighter drop-shadow-lg">
               {{ nomeExibicao || dadosClima.name }}
             </h2>
@@ -140,26 +140,21 @@
               <span v-if="dadosClima.city_original && dadosClima.name !== dadosClima.city_original">
                 {{ dadosClima.city_original }} -
               </span>
-
               <span v-if="dadosClima.country === 'BR'">{{ dadosClima.state }} - BR</span>
               <span v-else>{{ dadosClima.country }}</span>
             </p>
-
             <div class="flex flex-col items-center justify-center gap-2 mb-6">
               <span class="text-[7rem] leading-none filter drop-shadow-2xl animate-float">
                 {{ obterIconeVisual(dadosClima.weather[0].icon, verificarSeEhDia(dadosClima), dadosClima.weather[0].id)
                 }}
               </span>
-
               <span class="text-8xl font-black tracking-tighter mt-4">
                 {{ Math.round(dadosClima.main.temp) }}°
               </span>
-
               <p class="text-blue-300 font-bold uppercase tracking-[0.3em] text-xs mt-2">
                 {{ dadosClima.weather[0].description }}
               </p>
             </div>
-
             <div
               class="flex justify-center gap-8 pt-6 border-t border-white/10 text-slate-400 text-xs uppercase font-bold tracking-widest">
               <span class="flex items-center gap-2">
@@ -174,24 +169,20 @@
       </transition>
 
       <div class="w-full h-[570px] relative z-0 mb-12">
-
         <MapWidget v-if="dadosClima && dadosClima.coord" :lat="dadosClima.coord.lat" :lon="dadosClima.coord.lon"
           :temp="dadosClima.main.temp" :icon-code="dadosClima.weather[0].icon" :weather-id="dadosClima.weather[0].id"
           :timezone="dadosClima.timezone" :nearby="dadosClima.nearby" :is-dark="isDark"
           :is-day="verificarSeEhDia(dadosClima)" :uv="dadosClima.uv" @mapClick="handleMapClick" />
-
       </div>
     </div>
 
     <div v-if="dadosClima && previsaoHoraria.length > 0"
       :class="isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100'"
       class="w-full max-w-6xl px-8 py-8 mb-8 rounded-[2.5rem] border shadow-2xl transition-all">
-
       <div class="flex justify-between items-center mb-6 pl-2">
         <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
           Tendência de Temperatura (24h)
         </h3>
-
         <div class="flex gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700">
           <button @click="tipoGrafico = 'line'"
             :class="tipoGrafico === 'line' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'"
@@ -205,7 +196,6 @@
           </button>
         </div>
       </div>
-
       <TempChart :horas="previsaoHoraria" :is-dark="isDark" :timezone="dadosClima.timezone" :tipo="tipoGrafico" />
     </div>
 
@@ -260,7 +250,6 @@ import axios from 'axios';
 import MapWidget from './components/MapWidget.vue';
 import TempChart from './components/TempChart.vue';
 
-// --- ESTADOS ---
 const cidadeInput = ref('');
 const sugestoes = ref([]);
 const dadosClima = ref(null);
@@ -271,8 +260,10 @@ const previsaoHoraria = ref([]);
 const isDark = ref(false);
 const tipoGrafico = ref('line');
 const estadoSelecionado = ref('');
-
-// --- TEMA ---
+const mostrarPopup = ref(false);
+const mostrarAlertaClima = ref(false);
+const mensagemAlerta = ref('');
+const dadosExtraAlerta = ref(null);
 const toggleDarkMode = () => {
   isDark.value = !isDark.value;
   if (isDark.value) {
@@ -283,85 +274,120 @@ const toggleDarkMode = () => {
     localStorage.setItem('theme', 'light');
   }
 };
-const mostrarPopup = ref(false);
+
 onMounted(() => {
+  // 1. Configuração do Tema
   const saved = localStorage.getItem('theme');
   if (saved === 'dark') {
     isDark.value = true;
     document.documentElement.classList.add('dark');
   }
 
-  // Lógica de disparo do Popup de Notificação
-  if ('Notification' in window && Notification.permission === 'default' && localStorage.getItem('notificacoes_recusadas') !== 'true') {
+  // 2. Lógica do Popup de Permissão (Só aparece se nunca decidiu)
+  const jaRecusou = localStorage.getItem('notificacoes_recusadas') === 'true';
+  if ('Notification' in window && Notification.permission === 'default' && !jaRecusou) {
     setTimeout(() => {
       mostrarPopup.value = true;
-    }, 3000); 
+    }, 5000); // 5 segundos para não ser tão invasivo
   }
-  const userId = 1; // <-- Substitua pela sua variável real de usuário logado
-  
-  // Verifica se o Echo foi instanciado (normalmente no seu bootstrap.js)
+
+  // 3. Ouvinte Único de Notificações (Real-time)
+  const userId = 1; // Idealmente pegar do auth() do Laravel depois
+
   if (window.Echo) {
     window.Echo.private(`App.Models.User.${userId}`)
       .notification((notification) => {
-        console.log("Alerta de Clima Recebido!", notification);
-
-        // 1. Dispara a notificação "Estilo WhatsApp" no SO do usuário!
+        // --- AÇÃO 1: Notificação Nativa do Sistema ---
         if (Notification.permission === 'granted') {
           new Notification('Alerta SkyCast PRO ⛈️', {
-            body: notification.mensagem || 'Atenção: Mudança brusca de clima detectada na sua região!',
-            icon: '/images/weather/11d.png', 
-            vibrate: [200, 100, 200] 
+            body: notification.mensagem || 'Mudança climática detectada!',
+            icon: '/images/weather/11d.png',
+            vibrate: [200, 100, 200]
           });
         }
-        if (dadosClima.value && dadosClima.value.coord) {
-           handleMapClick({ 
-             lat: dadosClima.value.coord.lat, 
-             lon: dadosClima.value.coord.lon 
-           });
+
+        // --- AÇÃO 2: Mostrar o seu novo Popup/Toast no Vue ---
+        mensagemAlerta.value = notification.mensagem;
+        dadosExtraAlerta.value = notification.weather;
+        mostrarAlertaClima.value = true;
+
+        // --- AÇÃO 3: Efeitos (Som e Atualização de Mapa) ---
+        const audio = new Audio('/notificacao_som.mp3');
+        audio.play().catch(e => console.log("Áudio bloqueado pelo navegador"));
+
+        if (dadosClima.value?.coord) {
+          handleMapClick({
+            lat: dadosClima.value.coord.lat,
+            lon: dadosClima.value.coord.lon
+          });
         }
       });
+    setTimeout(() => {
+      mostrarAlertaClima.value = false;
+    }, 10000); // Fecha o alerta de mudança após 10 segundos
   }
+
+  // 4. Inicialização de Dados
+  const ultimaCidade = localStorage.getItem('ultima_cidade');
+  if (ultimaCidade) {
+    executarBuscaFinal(ultimaCidade);
+  }
+
+  inicializarLocalizacao();
 });
+
+const inicializarLocalizacao = () => {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const coords = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      };
+      handleMapClick(coords);
+    },
+    (erro) => {
+      const ultimaCidade = localStorage.getItem('ultima_cidade');
+      executarBuscaFinal(ultimaCidade || "Recife");
+    },
+    { enableHighAccuracy: true, timeout: 5000 }
+  );
+};
+
 const fecharPopup = () => {
   mostrarPopup.value = false;
-  // Salva no navegador para não perturbar o usuário nos próximos acessos
-  localStorage.setItem('notificacoes_recusadas', 'true'); 
+  localStorage.setItem('notificacoes_recusadas', 'true');
 };
 
 const aceitarNotificacoes = async () => {
   mostrarPopup.value = false;
-  
-  // Dispara a caixa nativa do navegador (agora autorizada pelo clique prévio)
   const permissao = await Notification.requestPermission();
-  
+
   if (permissao === 'granted') {
     try {
       const registro = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registrado com sucesso:', registro);
-      // Aqui, futuramente, faremos o disparo do Axios para o backend do Laravel com o Token!
       alert('Tudo certo! Você receberá os alertas do SkyCast PRO.');
     } catch (erro) {
       console.error('Falha ao registrar o Service Worker:', erro);
     }
   } else {
-    // Se ele bloqueou na caixa nativa, a gente também salva para não perguntar mais
     localStorage.setItem('notificacoes_recusadas', 'true');
   }
 };
+
 const verificarSeEhDia = (dados) => {
   if (!dados || !dados.sys) return true;
   const agora = Math.floor(Date.now() / 1000);
   return agora > dados.sys.sunrise && agora < dados.sys.sunset;
 };
 
-// --- TRADUTOR DE ÍCONES INTELIGENTE ---
 const obterIconeVisual = (iconCode, forcarDia = null, weatherId = null) => {
   let codigoFinal = iconCode;
 
   if (forcarDia === true) codigoFinal = iconCode.replace('n', 'd');
   else if (forcarDia === false) codigoFinal = iconCode.replace('d', 'n');
 
-  // Lógica de Intensidade baseada no ID
   if (weatherId) {
     if (weatherId >= 200 && weatherId <= 299) return '⛈️⚡';
     if ([502, 503, 504, 522].includes(weatherId)) return '🌧️🌊';
@@ -391,7 +417,7 @@ const buscarSugestoes = async () => {
   try {
     const res = await axios.get(`/api/cidades/busca/${encodeURIComponent(cidadeInput.value)}`);
     sugestoes.value = res.data;
-  } catch (e) { console.error("Erro sugestões"); }
+  } catch (e) { console.error(e); }
 };
 
 const selecionarCidade = (c) => {
@@ -417,7 +443,7 @@ const executarBuscaFinal = async (t) => {
       processarRespostaClima(res.data);
       cidadeInput.value = '';
     }
-  } catch (e) { console.error("Erro busca"); } finally { carregando.value = false; }
+  } catch (e) { console.error(e); } finally { carregando.value = false; }
 };
 
 const handleMapClick = async (coords) => {
@@ -428,7 +454,7 @@ const handleMapClick = async (coords) => {
       nomeExibicao.value = null;
       processarRespostaClima(res.data);
     }
-  } catch (e) { console.error("Erro mapa"); } finally { carregando.value = false; }
+  } catch (e) { console.error(e); } finally { carregando.value = false; }
 };
 
 const usarLocalizacao = () => {
@@ -441,12 +467,10 @@ const usarLocalizacao = () => {
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      console.log("GPS Encontrado:", pos.coords.latitude, pos.coords.longitude);
       handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude });
     },
     (erro) => {
       carregando.value = false;
-      console.error("Erro GPS:", erro);
       if (erro.code === 1) {
         alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
       } else if (erro.code === 2) {
@@ -478,8 +502,8 @@ const processarRespostaClima = (d) => {
     nearby: d.nearby || []
   };
 
+  localStorage.setItem('ultima_cidade', d.city.name);
   estadoSelecionado.value = '';
-
   previsaoHoraria.value = d.list.slice(0, 8);
   previsaoSemana.value = d.list.filter(i => i.dt_txt.includes("12:00:00"));
 };

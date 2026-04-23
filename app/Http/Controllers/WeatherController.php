@@ -37,84 +37,62 @@ class WeatherController extends Controller
         return response()->json($cities);
     }
 
-    public function climaPorCoordenadas(Request $request)
-    {
-        $request->validate(['lat' => 'required', 'lon' => 'required']);
+  public function climaPorCoordenadas(Request $request)
+{
+    $request->validate(['lat' => 'required', 'lon' => 'required']);
 
-        $lat = $request->input('lat');
-        $lon = $request->input('lon');
-        $apiKey = env('OPENWEATHER_API_KEY');
+    $lat = $request->input('lat');
+    $lon = $request->input('lon');
+    $apiKey = env('OPENWEATHER_API_KEY');
 
+    // Se a chave não vier do ENV, o erro 401 é certo.
+    if (!$apiKey) {
+        return response()->json(['error' => 'Chave API não configurada no .env'], 500);
+    }
+
+    try {
+        // Usamos withoutVerifying() para evitar erros de certificado SSL no ambiente local
+        $weatherResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/forecast", [
+            'lat' => $lat,
+            'lon' => $lon,
+            'appid' => $apiKey,
+            'units' => 'metric',
+            'lang' => 'pt_br'
+        ]);
+
+        if ($weatherResponse->status() === 401) {
+            return response()->json(['error' => 'Chave da OpenWeather inválida ou ainda não ativada.'], 401);
+        }
+
+        if ($weatherResponse->failed()) {
+            throw new \Exception("Falha OpenWeather: " . $weatherResponse->status());
+        }
+
+        $weatherData = $weatherResponse->json();
+
+        // Lógica de Cidades Vizinhas (Find)
         try {
-            // 1. BUSCA O CLIMA DO LOCAL (Forecast)
-            $weatherResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/forecast", [
+            $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
                 'lat' => $lat,
                 'lon' => $lon,
+                'cnt' => 5,
                 'appid' => $apiKey,
-                'units' => 'metric',
-                'lang' => 'pt_br'
+                'units' => 'metric'
             ]);
 
-            if ($weatherResponse->failed()) {
-                throw new \Exception("Falha OpenWeather: " . $weatherResponse->status());
+            if ($nearbyResponse->successful()) {
+                $weatherData['nearby'] = $nearbyResponse->json()['list'] ?? [];
             }
-
-            $weatherData = $weatherResponse->json();
-
-            try {
-                $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
-                    'lat' => $lat,
-                    'lon' => $lon,
-                    'cnt' => 5, // Traz 5 cidades vizinhas
-                    'appid' => $apiKey,
-                    'units' => 'metric',
-                    'lang' => 'pt_br'
-                ]);
-
-                if ($nearbyResponse->successful()) {
-                    // Injeta a lista de vizinhos na resposta final
-                    $weatherData['nearby'] = $nearbyResponse->json()['list'];
-                }
-            } catch (\Exception $e) {
-            }
-
-            // 3. BUSCA O NOME DA RUA (Nominatim)
-            try {
-                $geoResponse = Http::withoutVerifying()
-                    ->withHeaders(['User-Agent' => 'SkyCastPro/1.0'])
-                    ->get("https://nominatim.openstreetmap.org/reverse", [
-                        'lat' => $lat,
-                        'lon' => $lon,
-                        'format' => 'json',
-                        'zoom' => 18,
-                        'addressdetails' => 1
-                    ]);
-
-                if ($geoResponse->successful()) {
-                    $geoData = $geoResponse->json();
-                    $address = $geoData['address'] ?? [];
-
-                    $nomeRua = $address['road'] ?? $address['pedestrian'] ?? $address['suburb'] ?? null;
-
-                    if ($nomeRua) {
-                        $weatherData['city']['city_original'] = $weatherData['city']['name'];
-                        $weatherData['city']['name'] = $nomeRua;
-                    }
-
-                    if (isset($address['state'])) {
-                        $weatherData['city']['state_uf'] = str_replace('BR-', '', $address['ISO3166-2-lvl4'] ?? $address['state']);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::error("Erro Nominatim: " . $e->getMessage());
-            }
-
-            return response()->json($weatherData);
         } catch (\Exception $e) {
-            \Log::error("Erro Geral GPS: " . $e->getMessage());
-            return response()->json(['error' => 'Erro interno: ' . $e->getMessage()], 500);
+            $weatherData['nearby'] = [];
         }
+
+        return response()->json($weatherData);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
     }
+}
 
     // Mapas Coloridos
     public function getMapTile($layer, $z, $x, $y)
@@ -142,13 +120,8 @@ class WeatherController extends Controller
         $lon = $request->lon;
         $apiKey = env('OPENWEATHER_API_KEY');
 
-        // 1. Busca a cidade principal clicada
         $responsePrincipal = Http::get("https://api.openweathermap.org/data/2.5/weather?lat={$lat}&lon={$lon}&appid={$apiKey}&units=metric");
 
-        // 2. Busca as cidades vizinhas (opcional, dependendo de como você fez a lógica do 'nearby')
-        // ... sua lógica de cidades ao redor aqui ...
-
-        // 3. Retorna pro Vue
         return response()->json([
             'lat' => $responsePrincipal['coord']['lat'],
             'lon' => $responsePrincipal['coord']['lon'],

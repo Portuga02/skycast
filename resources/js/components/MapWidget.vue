@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full min-h-[450px] lg:min-h-[620px] flex flex-col md:flex-row gap-4 relative overflow-hidden">
+  <div class="w-full h-full min-h-[450px] lg:min-h-[520px] flex flex-col md:flex-row gap-4 relative overflow-hidden">
     <div class="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 transition-all duration-500 relative z-10"
       :class="isDark ? 'border-slate-800 shadow-blue-900/10' : 'border-white shadow-slate-200'">
       <div id="mapContainer" class="w-full h-full outline-none bg-slate-200 dark:bg-slate-900"></div>

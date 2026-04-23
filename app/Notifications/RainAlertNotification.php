@@ -3,52 +3,35 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\BroadcastMessage; // <--- IMPORTANTE
 
 class RainAlertNotification extends Notification
 {
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
+    public $weather;
+    public $mensagemCustomizada;
+
+    public function __construct($weather, $mensagemCustomizada = null)
     {
-        //
+        $this->weather = $weather;
+        $this->mensagemCustomizada = $mensagemCustomizada;
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function toBroadcast($notifiable)
     {
-        return ['database', 'broadcast'];
+        return new \Illuminate\Notifications\Messages\BroadcastMessage([
+            // Se tiver mensagem de mudança, usa ela. Senão, usa a padrão.
+            'mensagem' => $this->mensagemCustomizada ?? "Clima atual: " . $this->weather['weather'][0]['description'],
+        ]);
     }
-
-    /**
-     * Get the mail representation of the notification.
-     */
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
-    }
-
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
+    // 3. Isso salva no banco de dados (tabela notifications)
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'mensagem' => "Alerta de clima em " . ($this->weather['name'] ?? 'sua região'),
+            'temp' => $this->weather['main']['temp'] ?? 0,
         ];
     }
 }
