@@ -64,7 +64,7 @@
         </div>
       </header>
 
-      <div class="w-full max-w-md relative mb-10 z-50">
+      <div class="w-full max-w-md relative mb-10 z-[110]">
         <div class="flex gap-2 sm:gap-3">
           <button @click="usarLocalizacao" title="Usar localização atual"
             class="px-4 py-4 rounded-2xl shadow-xl font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center group border-2 border-transparent"
@@ -84,7 +84,7 @@
               :class="isDark ? 'bg-slate-900 text-white placeholder-slate-500 shadow-blue-900/20' : 'bg-white text-slate-900 placeholder-slate-400 shadow-slate-200'" />
 
             <ul v-if="sugestoes.length > 0"
-              class="absolute z-[101] w-full mt-2 rounded-2xl shadow-2xl overflow-hidden border"
+              class="absolute z-[120] w-full mt-2 rounded-2xl shadow-2xl overflow-hidden border"
               :class="isDark ? 'bg-slate-900 text-white border-slate-800' : 'bg-white text-slate-900 border-slate-200'">
               <li v-for="(cidade, index) in sugestoes" :key="index" @mousedown.prevent="selecionarCidade(cidade)"
                 class="px-6 py-4 cursor-pointer flex justify-between items-center transition-colors border-b last:border-none"
@@ -237,7 +237,7 @@
           <span :class="isDark ? 'text-white' : 'text-slate-800'" class="text-2xl font-black">{{
             Math.round(dia.main.temp) }}°</span>
           <span class="text-[9px] text-slate-400 font-bold uppercase mt-3 leading-tight">{{ dia.weather[0].description
-          }}</span>
+            }}</span>
         </div>
       </div>
     </div>
@@ -264,6 +264,7 @@ const mostrarPopup = ref(false);
 const mostrarAlertaClima = ref(false);
 const mensagemAlerta = ref('');
 const dadosExtraAlerta = ref(null);
+
 const toggleDarkMode = () => {
   isDark.value = !isDark.value;
   if (isDark.value) {
@@ -276,58 +277,50 @@ const toggleDarkMode = () => {
 };
 
 onMounted(() => {
-  // 1. Configuração do Tema
   const saved = localStorage.getItem('theme');
   if (saved === 'dark') {
     isDark.value = true;
     document.documentElement.classList.add('dark');
   }
 
-  // 2. Lógica do Popup de Permissão (Só aparece se nunca decidiu)
   const jaRecusou = localStorage.getItem('notificacoes_recusadas') === 'true';
   if ('Notification' in window && Notification.permission === 'default' && !jaRecusou) {
-    setTimeout(() => {
-      mostrarPopup.value = true;
-    }, 5000); // 5 segundos para não ser tão invasivo
+    setTimeout(() => { mostrarPopup.value = true; }, 5000);
   }
 
-  // 3. Ouvinte Único de Notificações (Real-time)
-  const userId = 1; // Idealmente pegar do auth() do Laravel depois
+  const userId = 1;
 
   if (window.Echo) {
-    window.Echo.private(`App.Models.User.${userId}`)
-      .notification((notification) => {
-        // --- AÇÃO 1: Notificação Nativa do Sistema ---
-        if (Notification.permission === 'granted') {
-          new Notification('Alerta SkyCast PRO ⛈️', {
-            body: notification.mensagem || 'Mudança climática detectada!',
-            icon: '/images/weather/11d.png',
-            vibrate: [200, 100, 200]
-          });
-        }
+    try {
+      window.Echo.private(`App.Models.User.${userId}`)
+        .notification((notification) => {
+          if (Notification.permission === 'granted') {
+            new Notification('Alerta SkyCast PRO ⛈️', {
+              body: notification.mensagem || 'Mudança climática detectada!',
+              icon: '/images/weather/11d.png',
+              vibrate: [200, 100, 200]
+            });
+          }
+          mensagemAlerta.value = notification.mensagem;
+          dadosExtraAlerta.value = notification.weather;
+          mostrarAlertaClima.value = true;
 
-        // --- AÇÃO 2: Mostrar o seu novo Popup/Toast no Vue ---
-        mensagemAlerta.value = notification.mensagem;
-        dadosExtraAlerta.value = notification.weather;
-        mostrarAlertaClima.value = true;
+          const audio = new Audio('/notificacao_som.mp3');
+          audio.play().catch(e => console.log("Áudio bloqueado pelo navegador"));
 
-        // --- AÇÃO 3: Efeitos (Som e Atualização de Mapa) ---
-        const audio = new Audio('/notificacao_som.mp3');
-        audio.play().catch(e => console.log("Áudio bloqueado pelo navegador"));
-
-        if (dadosClima.value?.coord) {
-          handleMapClick({
-            lat: dadosClima.value.coord.lat,
-            lon: dadosClima.value.coord.lon
-          });
-        }
-      });
-    setTimeout(() => {
-      mostrarAlertaClima.value = false;
-    }, 10000); // Fecha o alerta de mudança após 10 segundos
+          if (dadosClima.value?.coord) {
+            handleMapClick({
+              lat: dadosClima.value.coord.lat,
+              lon: dadosClima.value.coord.lon
+            });
+          }
+        });
+      setTimeout(() => { mostrarAlertaClima.value = false; }, 10000);
+    } catch (e) {
+      console.log("Serviço de Echo (Reverb) inativo. Operando em modo offline.");
+    }
   }
 
-  // 4. Inicialização de Dados
   const ultimaCidade = localStorage.getItem('ultima_cidade');
   if (ultimaCidade) {
     executarBuscaFinal(ultimaCidade);
@@ -341,10 +334,7 @@ const inicializarLocalizacao = () => {
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const coords = {
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude
-      };
+      const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       handleMapClick(coords);
     },
     (erro) => {
@@ -363,13 +353,12 @@ const fecharPopup = () => {
 const aceitarNotificacoes = async () => {
   mostrarPopup.value = false;
   const permissao = await Notification.requestPermission();
-
   if (permissao === 'granted') {
     try {
-      const registro = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.register('/sw.js');
       alert('Tudo certo! Você receberá os alertas do SkyCast PRO.');
     } catch (erro) {
-      console.error('Falha ao registrar o Service Worker:', erro);
+      console.error('Falha ao registrar:', erro);
     }
   } else {
     localStorage.setItem('notificacoes_recusadas', 'true');
@@ -384,7 +373,6 @@ const verificarSeEhDia = (dados) => {
 
 const obterIconeVisual = (iconCode, forcarDia = null, weatherId = null) => {
   let codigoFinal = iconCode;
-
   if (forcarDia === true) codigoFinal = iconCode.replace('n', 'd');
   else if (forcarDia === false) codigoFinal = iconCode.replace('d', 'n');
 
@@ -401,7 +389,6 @@ const obterIconeVisual = (iconCode, forcarDia = null, weatherId = null) => {
     '01n': '🌙', '02n': '☁️🌙', '03n': '☁️', '04n': '☁️',
     '09n': '🌧️', '10n': '🌧️', '11n': '⛈️', '13n': '❄️', '50n': '🌫️'
   };
-
   return mapa[codigoFinal] || '🌡️';
 };
 
@@ -429,11 +416,11 @@ const selecionarCidade = (c) => {
   } else {
     executarBuscaFinal(`${c.name}, ${c.state || ''}, ${c.country}`);
   }
-
   sugestoes.value = [];
   cidadeInput.value = '';
 };
 
+// --- AJUSTE: Proteção de Erro na Busca Final ---
 const executarBuscaFinal = async (t) => {
   if (!t) return;
   carregando.value = true;
@@ -443,63 +430,73 @@ const executarBuscaFinal = async (t) => {
       processarRespostaClima(res.data);
       cidadeInput.value = '';
     }
-  } catch (e) { console.error(e); } finally { carregando.value = false; }
+  } catch (e) {
+    console.error("Erro na busca final:", e.response?.data || e.message);
+    alert("Erro do Servidor Laravel: " + (e.response?.data?.error || "Verifique os logs do backend."));
+  } finally {
+    carregando.value = false;
+  }
 };
 
+// --- AJUSTE: Proteção de Erro no Clique do Mapa (Onde estava dando Erro 500) ---
 const handleMapClick = async (coords) => {
   carregando.value = true;
   try {
     const res = await axios.get(`/api/clima/coordenadas`, { params: { lat: coords.lat, lon: coords.lon } });
+
+    // Sucesso:
     if (res.data && res.data.list) {
       nomeExibicao.value = null;
       processarRespostaClima(res.data);
     }
-  } catch (e) { console.error(e); } finally { carregando.value = false; }
+    // Erro capturado, mas devolvido com status 200:
+    else if (res.data && res.data.error) {
+      console.error("Erro reportado pelo Backend:", res.data.error);
+      alert("Ocorreu um erro no backend: " + res.data.error);
+    }
+  } catch (e) {
+    // Erro 500 do Laravel vai cair aqui agora, e te avisar na tela!
+    const erroLaravel = e.response?.data?.error || e.message;
+    console.error("Erro no Axios/Laravel:", e.response?.data || erroLaravel);
+    alert("Laravel retornou Erro 500: " + erroLaravel + " \nVerifique a sua API KEY ou o laravel.log");
+  } finally {
+    carregando.value = false;
+  }
 };
 
 const usarLocalizacao = () => {
-  if (!navigator.geolocation) {
-    alert("Seu navegador não tem suporte a GPS!");
-    return;
-  }
-
+  if (!navigator.geolocation) { alert("Seu navegador não tem suporte a GPS!"); return; }
   carregando.value = true;
-
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-    },
+    (pos) => { handleMapClick({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
     (erro) => {
       carregando.value = false;
-      if (erro.code === 1) {
-        alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
-      } else if (erro.code === 2) {
-        alert("📡 Sinal de GPS indisponível. Verifique se o GPS do seu dispositivo está ligado.");
-      } else if (erro.code === 3) {
-        alert("⏱️ O GPS demorou muito para responder.");
-      } else {
-        alert("Erro desconhecido ao pegar localização.");
-      }
+      if (erro.code === 1) alert("🚨 Permissão negada! Clique no cadeado 🔒 na barra de endereço e permita a Localização.");
+      else if (erro.code === 2) alert("📡 Sinal de GPS indisponível. Verifique se o GPS do seu dispositivo está ligado.");
+      else alert("⏱️ O GPS demorou muito para responder.");
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 };
 
+// --- AJUSTE: Proteção caso "nearby" ou "city_original" não existam na resposta da API ---
 const processarRespostaClima = (d) => {
+  if (!d || !d.list || !d.city) return;
+
   const atual = d.list[0];
   const estadoDetectado = d.city.state_uf || d.city.state || estadoSelecionado.value || '';
 
   dadosClima.value = {
     ...atual,
-    name: d.city.name,
+    name: d.city.name || 'Desconhecido',
     city_original: d.city.city_original || null,
-    coord: d.city.coord,
-    timezone: d.city.timezone,
-    country: d.city.country,
+    coord: d.city.coord || { lat: 0, lon: 0 },
+    timezone: d.city.timezone || 0,
+    country: d.city.country || '',
     state: estadoDetectado,
-    sys: { sunrise: d.city.sunrise, sunset: d.city.sunset },
+    sys: { sunrise: d.city.sunrise || 0, sunset: d.city.sunset || 0 },
     air_quality: d.air_quality || null,
-    nearby: d.nearby || []
+    nearby: d.nearby || [] // Se o backend não mandar vizinhos, ele cria um array vazio para o mapa não quebrar
   };
 
   localStorage.setItem('ultima_cidade', d.city.name);

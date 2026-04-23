@@ -41,6 +41,7 @@ const emit = defineEmits(['mapClick']);
 
 let map = null;
 let markersGroup = null;
+let activeWeatherLayer = null;
 
 const baseCdn = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets';
 
@@ -219,14 +220,25 @@ onMounted(() => {
 });
 
 const centralizarMapa = () => map?.flyTo([props.lat, props.lon], 17);
-const trocarCamada = (id) => { camadaAtiva.value = id; };
+const trocarCamada = (id) => {
+  camadaAtiva.value = id;
 
-watch(() => [props.lat, props.lon, props.nearby, props.weatherId], ([newLat, newLon]) => {
-  if (map) {
-    map.flyTo([newLat, newLon], 16);
-    renderMapData();
+  // 1. Se já existir uma mancha colorida na tela, apaga ela primeiro
+  if (activeWeatherLayer) {
+    map.removeLayer(activeWeatherLayer);
+    activeWeatherLayer = null;
   }
-});
+
+  // 2. Se o ID não for nulo (ou seja, não clicou no botão "Limpo")
+  if (id) {
+    // Chama o seu Laravel passando a camada escolhida (temp_new, precipitation_new, etc)
+    activeWeatherLayer = L.tileLayer(`http://localhost:8000/api/mapa/camada/${id}/{z}/{x}/{y}.png`, {
+      maxZoom: 19,
+      opacity: 0.6, // 0.6 deixa transparente para você continuar vendo as ruas por baixo
+      zIndex: 10 // Garante que a cor fique acima do mapa, mas abaixo dos pinos
+    }).addTo(map);
+  }
+};
 </script>
 
 <style>
