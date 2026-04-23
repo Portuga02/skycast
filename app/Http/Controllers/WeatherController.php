@@ -37,64 +37,62 @@ class WeatherController extends Controller
         return response()->json($cities);
     }
 
-  public function climaPorCoordenadas(Request $request)
-{
-    $request->validate(['lat' => 'required', 'lon' => 'required']);
+    public function climaPorCoordenadas(Request $request)
+    {
+        $request->validate(['lat' => 'required', 'lon' => 'required']);
 
-    $lat = $request->input('lat');
-    $lon = $request->input('lon');
-    $apiKey = env('OPENWEATHER_API_KEY');
+        $lat = $request->input('lat');
+        $lon = $request->input('lon');
+        $apiKey = env('OPENWEATHER_API_KEY');
 
-    // Se a chave não vier do ENV, o erro 401 é certo.
-    if (!$apiKey) {
-        return response()->json(['error' => 'Chave API não configurada no .env'], 500);
-    }
-
-    try {
-        // Usamos withoutVerifying() para evitar erros de certificado SSL no ambiente local
-        $weatherResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/forecast", [
-            'lat' => $lat,
-            'lon' => $lon,
-            'appid' => $apiKey,
-            'units' => 'metric',
-            'lang' => 'pt_br'
-        ]);
-
-        if ($weatherResponse->status() === 401) {
-            return response()->json(['error' => 'Chave da OpenWeather inválida ou ainda não ativada.'], 401);
+        // Se a chave não vier do ENV, o erro 401 é certo.
+        if (!$apiKey) {
+            return response()->json(['error' => 'Chave API não configurada no .env'], 500);
         }
 
-        if ($weatherResponse->failed()) {
-            throw new \Exception("Falha OpenWeather: " . $weatherResponse->status());
-        }
-
-        $weatherData = $weatherResponse->json();
-
-        // Lógica de Cidades Vizinhas (Find)
         try {
-            $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
+            // Usamos withoutVerifying() para evitar erros de certificado SSL no ambiente local
+            $weatherResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/forecast", [
                 'lat' => $lat,
                 'lon' => $lon,
-                'cnt' => 5,
                 'appid' => $apiKey,
-                'units' => 'metric'
+                'units' => 'metric',
+                'lang' => 'pt_br'
             ]);
 
-            if ($nearbyResponse->successful()) {
-                $weatherData['nearby'] = $nearbyResponse->json()['list'] ?? [];
+            if ($weatherResponse->status() === 401) {
+                return response()->json(['error' => 'Chave da OpenWeather inválida ou ainda não ativada.'], 401);
             }
+
+            if ($weatherResponse->failed()) {
+                throw new \Exception("Falha OpenWeather: " . $weatherResponse->status());
+            }
+
+            $weatherData = $weatherResponse->json();
+
+            // Lógica de Cidades Vizinhas (Find)
+            try {
+                $nearbyResponse = Http::withoutVerifying()->get("https://api.openweathermap.org/data/2.5/find", [
+                    'lat' => $lat,
+                    'lon' => $lon,
+                    'cnt' => 5,
+                    'appid' => $apiKey,
+                    'units' => 'metric'
+                ]);
+
+                if ($nearbyResponse->successful()) {
+                    $weatherData['nearby'] = $nearbyResponse->json()['list'] ?? [];
+                }
+            } catch (\Exception $e) {
+                $weatherData['nearby'] = [];
+            }
+
+            return response()->json($weatherData);
         } catch (\Exception $e) {
-            $weatherData['nearby'] = [];
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return response()->json($weatherData);
-
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
     }
-}
 
-    // Mapas Coloridos
     public function getMapTile($layer, $z, $x, $y)
     {
         $apiKey = env('OPENWEATHER_API_KEY');
@@ -103,14 +101,21 @@ class WeatherController extends Controller
         try {
             $response = Http::withoutVerifying()->timeout(3)->get($url);
 
-            if ($response->successful() && str_contains($response->header('Content-Type'), 'image/png')) {
-                return response($response->body())
-                    ->header('Content-Type', 'image/png')
-                    ->header('Cache-Control', 'public, max-age=3600');
-            }
-        } catch (\Exception $e) {
-        }
+            // Verifica se a requisição deu 200 OK
+            if ($response->successful()) {
+                $contentType = $response->header('Content-Type');
 
+                // PROTEÇÃO: Verifica se o Content-Type existe e é uma string ANTES de checar o PNG
+                if (is_string($contentType) && str_contains($contentType, 'image/png')) {
+                    return response($response->body())
+                        ->header('Content-Type', 'image/png')
+                        ->header('Cache-Control', 'public, max-age=3600');
+                }
+            }
+        } catch (\Throwable $e) {
+
+            \Log::warning("Erro ao baixar camada do mapa: " . $e->getMessage());
+        }
         $pixel = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
         return response($pixel)->header('Content-Type', 'image/png');
     }
