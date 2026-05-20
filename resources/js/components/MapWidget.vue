@@ -8,7 +8,7 @@
     <div class="controles-container z-20">
       <button @click="centralizarMapa"
         class="botao-controle bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-400 mb-2 md:mb-4">
-        
+
         <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Compass/3D/compass_3d.png"
           class="w-8 h-8 object-contain transition-transform duration-500 group-hover:rotate-[360deg]"
           alt="Centralizar">
@@ -61,7 +61,7 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
   const id = parseInt(weatherId);
   const safeIcon = icon || '02d';
   const owIconUrl = `https://openweathermap.org/img/wn/${safeIcon}@2x.png`;
-  
+
   const icons3D = {
     thunderstorm: `${baseCdn}/Cloud%20with%20lightning%20and%20rain/3D/cloud_with_lightning_and_rain_3d.png`,
     rain: `${baseCdn}/Cloud%20with%20rain/3D/cloud_with_rain_3d.png`,
@@ -74,45 +74,45 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
   };
 
   const animatedFluentEmojiBase = 'https://cdn.jsdelivr.net/gh/Tarikul-Islam-Anik/Animated-Fluent-Emojis/Emojis/Smilies';
-  // --- NOVIDADE: Fonte Animada focado em CLIMA ⛈️ ---
+
   const animatedWeatherBase = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places';
 
   let iconUrl = icons3D.sun;
   let bgClass = 'bg-white border-slate-200';
 
-  if (id >= 200 && id <= 299) { 
+  if (id >= 200 && id <= 299) {
     iconUrl = icons3D.thunderstorm;
     bgClass = 'bg-slate-900 border-yellow-500 text-white';
-  } 
-  else if (id >= 300 && id <= 599) { 
+  }
+  else if (id >= 300 && id <= 599) {
     iconUrl = (props.isDay && id === 500) ? icons3D.sunRain : icons3D.rain;
     bgClass = 'bg-blue-600 border-blue-400 text-white';
-  } 
-  else if (id >= 802 && id <= 804) { 
+  }
+  else if (id >= 802 && id <= 804) {
     iconUrl = icons3D.cloudy;
     bgClass = id >= 803 ? 'bg-slate-500 border-slate-400 text-white' : 'bg-blue-100 border-white';
   }
-  else if (id >= 701 && id <= 781) { 
+  else if (id >= 701 && id <= 781) {
     iconUrl = icons3D.fog;
     bgClass = 'bg-gray-300 border-gray-200';
   }
-  else if (!props.isDay && (id === 800 || icon === '01n')) { 
+  else if (!props.isDay && (id === 800 || icon === '01n')) {
     iconUrl = icons3D.moon;
     bgClass = 'bg-slate-800 border-slate-600 text-white';
   }
-  else if (id === 801 && !props.isDay) { 
-    iconUrl = icons3D.cloudy; 
+  else if (id === 801 && !props.isDay) {
+    iconUrl = icons3D.cloudy;
     bgClass = 'bg-slate-700 border-slate-500 text-white';
   }
-  else if (id === 801 && props.isDay) { 
+  else if (id === 801 && props.isDay) {
     iconUrl = icons3D.sunCloud;
     bgClass = 'bg-blue-100 border-white';
   }
-  else { 
+  else {
     iconUrl = icons3D.sun;
     bgClass = 'bg-gradient-to-br from-sky-400 to-sky-100 border-white';
   }
-  let facePath = 'Smiling%20Face%20with%20Sunglasses.png'; 
+  let facePath = 'Smiling%20Face%20with%20Sunglasses.png';
   let faceClass = 'border-green-300';
   const timeStamp = new Date().getTime(); // Cache Buster
 
@@ -131,12 +131,9 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
       <img src="${faceBadgeUrl}" onerror="this.onerror=null; this.style.display='none';" class="w-6 h-6 object-contain filter drop-shadow-sm">
     </div>`;
 
-  // --- 2. O BALÃO DE SUGESTÃO FLUTUANDO ACIMA DO ROSTINHO (RESTAURADO ANIMADO ☔) ---
   let suggestionBadgeHtml = '';
-  if (id >= 200 && id <= 599) { // Se for tempestade ou chuva, sugere guarda-chuva
-    // AQUI OCORREU A MUDANÇA: Usando a URL da fonte animada oficial chovendo!
+  if (id >= 200 && id <= 599) {
     const umbrellaUrl = `${animatedWeatherBase}/Umbrella%20with%20Rain%20Drops.png`;
-    // Note o '-top-10': ele empurra o balãozinho para ficar exatamente em cima da cabeça do rostinho! animate-bounce dá o toque final.
     suggestionBadgeHtml = `
       <div class="absolute -top-10 -right-1 w-7 h-7 bg-white/95 backdrop-blur-md rounded-full shadow-md border-2 border-blue-400 flex items-center justify-center z-40 animate-bounce">
         <img src="${umbrellaUrl}?t=${timeStamp}" onerror="this.onerror=null; this.style.display='none'" class="w-5 h-5 object-contain">
@@ -154,7 +151,7 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
     </div>`;
 
   const iconObj = L.divIcon({ className: 'custom-leaflet-icon', html: html, iconSize: [60, 90], iconAnchor: [30, 75] });
-  
+
   const marker = L.marker([lat, lon], { icon: iconObj }).addTo(markersGroup);
 
   let uvBadge = '';
@@ -166,7 +163,7 @@ const createCustomMarker = (lat, lon, temp, icon, weatherId, isMain = false) => 
     if (props.uv >= 11) uvColor = 'bg-purple-500';
     uvBadge = `<div class="mt-1 flex justify-center gap-1"><span class="w-2 h-2 rounded-full ${uvColor}"></span><span class="text-[9px] font-bold text-slate-500">UV ${Math.round(props.uv)}</span></div>`;
   }
-  
+
   marker.bindPopup(`<div class="text-center font-bold text-slate-800 p-1 text-lg">${Math.round(temp)}°C${uvBadge}</div>`, { closeButton: false });
 
   marker.on('click', (e) => {
@@ -191,11 +188,11 @@ const renderMapData = () => {
       }
 
       createCustomMarker(
-        city.coord.lat, 
-        city.coord.lon, 
-        city.main.temp, 
-        city.weather[0].icon, 
-        city.weather[0].id, 
+        city.coord.lat,
+        city.coord.lon,
+        city.main.temp,
+        city.weather[0].icon,
+        city.weather[0].id,
         false
       );
     });
@@ -206,7 +203,7 @@ onMounted(() => {
   map = L.map('mapContainer', { zoomControl: false, attributionControl: false }).setView([props.lat, props.lon], 16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   markersGroup = L.layerGroup().addTo(map);
-  
+
   map.on('click', (e) => {
     const { lat, lng } = e.latlng;
     map.flyTo([lat, lng], 16);
@@ -218,7 +215,18 @@ onMounted(() => {
     map.invalidateSize();
   }, 600);
 });
+watch(
+  () => [props.lat, props.lon],
+  ([newLat, newLon]) => {
+    if (map) {
+      // 1. Voa suavemente para as novas coordenadas
+      map.flyTo([newLat, newLon], 16);
 
+      // 2. Apaga os pinos antigos e desenha os novos (da nova cidade)
+      renderMapData();
+    }
+  }
+);
 const centralizarMapa = () => map?.flyTo([props.lat, props.lon], 17);
 const trocarCamada = (id) => {
   camadaAtiva.value = id;
@@ -231,11 +239,11 @@ const trocarCamada = (id) => {
 
   // 2. Se o ID não for nulo (ou seja, não clicou no botão "Limpo")
   if (id) {
-    // Chama o seu Laravel passando a camada escolhida (temp_new, precipitation_new, etc)
+
     activeWeatherLayer = L.tileLayer(`http://localhost:8000/api/mapa/camada/${id}/{z}/{x}/{y}.png`, {
       maxZoom: 19,
-      opacity: 0.6, // 0.6 deixa transparente para você continuar vendo as ruas por baixo
-      zIndex: 10 // Garante que a cor fique acima do mapa, mas abaixo dos pinos
+      opacity: 0.6,
+      zIndex: 10
     }).addTo(map);
   }
 };
@@ -269,7 +277,7 @@ const trocarCamada = (id) => {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   background-size: cover;
   position: relative;
-  background-color: white !important; 
+  background-color: white !important;
 }
 
 .marker-main {
